@@ -5,9 +5,7 @@ return [
     'documentations' => [
         'default' => [
             'api' => [
-                'title' => 'SpendWise API',
-                'version' => '1.0.0',
-                'description' => 'API for managing expenses, budgets, balances and group contexts',
+                'title' => 'L5 Swagger UI',
             ],
 
             'routes' => [
@@ -42,19 +40,11 @@ return [
                  */
                 'format_to_use_for_docs' => env('L5_FORMAT_TO_USE_FOR_DOCS', 'json'),
 
-            /*
-             * File to use as documentation
-             * Leave empty to use the generated one based on format_to_use_for_docs
-             * Set to api-docs.json to use manually created docs
-             */
-            'docs_file' => env('L5_SWAGGER_DOCS_FILE', 'api-docs.json'),
-
-/*
+                /*
                  * Absolute paths to directory containing the swagger annotations are stored.
                  */
                 'annotations' => [
-                    base_path('app/Swagger'),
-                    base_path('app/Http/Controllers'),
+                    base_path('app'),
                 ],
             ],
         ],
@@ -103,16 +93,11 @@ return [
              */
             'base' => env('L5_SWAGGER_BASE_PATH', null),
 
-/*
-              * Absolute path to directories that should be excluded from scanning
-              * @deprecated Please use `scanOptions.exclude`
-              * `scanOptions.exclude` overwrites this
-              */
-            'annotations' => [
-                'app/Swagger',
-                'app/Http/Controllers',
-            ],
-
+            /*
+             * Absolute path to directories that should be excluded from scanning
+             * @deprecated Please use `scanOptions.exclude`
+             * `scanOptions.exclude` overwrites this
+             */
             'excludes' => [],
         ],
 
@@ -229,11 +214,6 @@ return [
                     'name' => 'Authorization', // The name of the header or query parameter to be used.
                     'in' => 'header', // The location of the API key. Valid values are "query" or "header".
                 ],
-                'bearerAuth' => [
-                    'type' => 'http',
-                    'scheme' => 'bearer',
-                    'description' => 'JWT token. Enter token in format (Bearer <token>)',
-                ],
                 */
             ],
             'security' => [
@@ -257,7 +237,7 @@ return [
          * Set this to `true` in development mode so that docs would be regenerated on each request
          * Set this to `false` to disable swagger generation on production
          */
-        'generate_always' => env('L5_SWAGGER_GENERATE_ALWAYS', true),
+        'generate_always' => env('L5_SWAGGER_GENERATE_ALWAYS', false),
 
         /*
          * Set this to `true` to generate a copy of documentation in yaml format
