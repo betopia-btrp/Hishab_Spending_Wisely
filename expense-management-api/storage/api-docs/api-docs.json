@@ -1,0 +1,757 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "SpendWise API",
+    "version": "1.0.0",
+    "description": "API for managing expenses, budgets, balances and group contexts",
+    "contact": {
+      "email": "support@spendwise.com"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://expense-management-api.test//api",
+      "description": "Local API Server"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Enter JWT token in format: Bearer <token>"
+      }
+    }
+  },
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "tags": [
+    {"name": "Auth", "description": "Authentication APIs"},
+    {"name": "OAuth", "description": "OAuth authentication APIs"},
+    {"name": "Password Reset", "description": "Password reset APIs"},
+    {"name": "Profile", "description": "User profile APIs"},
+    {"name": "Categories", "description": "Expense category APIs"},
+    {"name": "Expenses", "description": "Expense management APIs"},
+    {"name": "Balances", "description": "Balance and settlement APIs"},
+    {"name": "Budgets", "description": "Budget management APIs"},
+    {"name": "Context", "description": "Context/group management APIs"}
+  ],
+  "paths": {
+    "/auth/register": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Register a new user",
+        "operationId": "register",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "email", "password"],
+                "properties": {
+                  "name": {"type": "string", "example": "Rukaiya"},
+                  "email": {"type": "string", "format": "email", "example": "rukaiya@email.com"},
+                  "password": {"type": "string", "example": "12345678"}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Registration successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {"type": "string"},
+                    "user": {"type": "object"},
+                    "token": {"type": "string"},
+                    "token_type": {"type": "string"},
+                    "expires_in": {"type": "integer"}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Login user and get JWT token",
+        "operationId": "login",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "password"],
+                "properties": {
+                  "email": {"type": "string", "format": "email", "example": "rukaiya@email.com"},
+                  "password": {"type": "string", "example": "12345678"}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "user": {"type": "object"},
+                    "token": {"type": "string"},
+                    "token_type": {"type": "string"},
+                    "expires_in": {"type": "integer"}
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid credentials"
+          }
+        }
+      }
+    },
+    "/auth/forgot-password": {
+      "post": {
+        "tags": ["Password Reset"],
+        "summary": "Request password reset email",
+        "operationId": "forgotPassword",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email"],
+                "properties": {
+                  "email": {"type": "string", "format": "email", "example": "user@email.com"}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Password reset link sent"
+          }
+        }
+      }
+    },
+    "/auth/reset-password": {
+      "post": {
+        "tags": ["Password Reset"],
+        "summary": "Reset password with token",
+        "operationId": "resetPassword",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "password", "password_confirmation", "token"],
+                "properties": {
+                  "email": {"type": "string", "format": "email"},
+                  "password": {"type": "string"},
+                  "password_confirmation": {"type": "string"},
+                  "token": {"type": "string"}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Password reset successfully"
+          }
+        }
+      }
+    },
+    "/auth/google/redirect": {
+      "get": {
+        "tags": ["OAuth"],
+        "summary": "Redirect to Google OAuth",
+        "operationId": "redirectToGoogle",
+        "responses": {
+          "200": {
+            "description": "Redirect URL",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "redirect_url": {"type": "string"}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/google/callback": {
+      "get": {
+        "tags": ["OAuth"],
+        "summary": "Handle Google OAuth callback",
+        "operationId": "handleGoogleCallback",
+        "responses": {
+          "200": {
+            "description": "Login successful with JWT token"
+          }
+        }
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Logout user",
+        "security": [{"bearerAuth": []}],
+        "responses": {
+          "200": {
+            "description": "Logged out successfully"
+          }
+        }
+      }
+    },
+    "/auth/me": {
+      "get": {
+        "tags": ["Auth"],
+        "summary": "Get authenticated user",
+        "security": [{"bearerAuth": []}],
+        "responses": {
+          "200": {
+            "description": "User data"
+          }
+        }
+      }
+    },
+    "/auth/refresh": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Refresh JWT token",
+        "security": [{"bearerAuth": []}],
+        "responses": {
+          "200": {
+            "description": "Token refreshed"
+          }
+        }
+      }
+    },
+    "/auth/profile": {
+      "patch": {
+        "tags": ["Profile"],
+        "summary": "Update profile",
+        "security": [{"bearerAuth": []}],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {"type": "string"},
+                  "avatar_url": {"type": "string", "format": "uri"}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Profile updated"
+          }
+        }
+      }
+    },
+    "/categories": {
+      "get": {
+        "tags": ["Categories"],
+        "summary": "List system and custom categories",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {"name": "context_id", "in": "query", "required": true, "schema": {"type": "string", "format": "uuid"}}
+        ],
+        "responses": {
+          "200": {
+            "description": "Categories list"
+          }
+        }
+      },
+      "post": {
+        "tags": ["Categories"],
+        "summary": "Create custom category (Pro users only)",
+        "security": [{"bearerAuth": []}],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["context_id", "name", "icon"],
+                "properties": {
+                  "context_id": {"type": "string", "format": "uuid"},
+                  "name": {"type": "string"},
+                  "icon": {"type": "string"}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Category created"
+          }
+        }
+      }
+    },
+    "/categories/{category}": {
+      "delete": {
+        "tags": ["Categories"],
+        "summary": "Delete custom category",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {"name": "category", "in": "path", "required": true, "schema": {"type": "string", "format": "uuid"}}
+        ],
+        "responses": {
+          "200": {
+            "description": "Category deleted"
+          }
+        }
+      }
+    },
+    "/expenses": {
+      "get": {
+        "tags": ["Expenses"],
+        "summary": "List expenses with filters",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {"name": "context_id", "in": "query", "required": true, "schema": {"type": "string", "format": "uuid"}},
+          {"name": "date_from", "in": "query", "schema": {"type": "string", "format": "date"}},
+          {"name": "date_to", "in": "query", "schema": {"type": "string", "format": "date"}},
+          {"name": "category_id", "in": "query", "schema": {"type": "string", "format": "uuid"}},
+          {"name": "keyword", "in": "query", "schema": {"type": "string"}},
+          {"name": "per_page", "in": "query", "schema": {"type": "integer", "default": 20}}
+        ],
+        "responses": {
+          "200": {
+            "description": "Expenses list"
+          }
+        }
+      },
+      "post": {
+        "tags": ["Expenses"],
+        "summary": "Create new expense",
+        "security": [{"bearerAuth": []}],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["context_id", "amount", "category_id"],
+                "properties": {
+                  "context_id": {"type": "string", "format": "uuid"},
+                  "amount": {"type": "number", "example": 500},
+                  "category_id": {"type": "string", "format": "uuid"},
+                  "note": {"type": "string"},
+                  "expense_date": {"type": "string", "format": "date"},
+                  "split_type": {"type": "string", "enum": ["equal", "custom", "percentage"]},
+                  "splits": {"type": "array", "items": {"type": "object"}}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Expense created"
+          }
+        }
+      }
+    },
+    "/expenses/{expense}": {
+      "get": {
+        "tags": ["Expenses"],
+        "summary": "Get expense details",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {"name": "expense", "in": "path", "required": true, "schema": {"type": "string", "format": "uuid"}}
+        ],
+        "responses": {
+          "200": {
+            "description": "Expense details"
+          }
+        }
+      },
+      "put": {
+        "tags": ["Expenses"],
+        "summary": "Update expense",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {"name": "expense", "in": "path", "required": true, "schema": {"type": "string", "format": "uuid"}}
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "amount": {"type": "number"},
+                  "category_id": {"type": "string", "format": "uuid"},
+                  "note": {"type": "string"},
+                  "split_type": {"type": "string"},
+                  "splits": {"type": "array"}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Expense updated"
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Expenses"],
+        "summary": "Delete expense",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {"name": "expense", "in": "path", "required": true, "schema": {"type": "string", "format": "uuid"}}
+        ],
+        "responses": {
+          "200": {
+            "description": "Expense deleted"
+          }
+        }
+      }
+    },
+    "/expenses/{expense}/settle": {
+      "patch": {
+        "tags": ["Expenses"],
+        "summary": "Mark expense as settled",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {"name": "expense", "in": "path", "required": true, "schema": {"type": "string", "format": "uuid"}}
+        ],
+        "responses": {
+          "200": {
+            "description": "Expense marked as settled"
+          }
+        }
+      }
+    },
+    "/balances/summary": {
+      "get": {
+        "tags": ["Balances"],
+        "summary": "Get balance summary (who owes whom)",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {"name": "context_id", "in": "query", "required": true, "schema": {"type": "string", "format": "uuid"}}
+        ],
+        "responses": {
+          "200": {
+            "description": "Balance summary"
+          }
+        }
+      }
+    },
+    "/balances/settlements": {
+      "post": {
+        "tags": ["Balances"],
+        "summary": "Record a settlement",
+        "security": [{"bearerAuth": []}],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["context_id", "amount", "settled_by"],
+                "properties": {
+                  "context_id": {"type": "string", "format": "uuid"},
+                  "amount": {"type": "number"},
+                  "settled_by": {"type": "string", "format": "uuid"}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Settlement recorded"
+          }
+        }
+      },
+      "get": {
+        "tags": ["Balances"],
+        "summary": "Get settlement history",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {"name": "context_id", "in": "query", "required": true, "schema": {"type": "string", "format": "uuid"}},
+          {"name": "per_page", "in": "query", "schema": {"type": "integer", "default": 20}}
+        ],
+        "responses": {
+          "200": {
+            "description": "Settlement history"
+          }
+        }
+      }
+    },
+    "/budgets": {
+      "get": {
+        "tags": ["Budgets"],
+        "summary": "List budgets with progress",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {"name": "context_id", "in": "query", "required": true, "schema": {"type": "string", "format": "uuid"}},
+          {"name": "month", "in": "query", "required": true, "schema": {"type": "integer", "minimum": 1, "maximum": 12}},
+          {"name": "year", "in": "query", "required": true, "schema": {"type": "integer", "minimum": 2000}}
+        ],
+        "responses": {
+          "200": {
+            "description": "Budgets with progress"
+          }
+        }
+      },
+      "post": {
+        "tags": ["Budgets"],
+        "summary": "Create budget",
+        "security": [{"bearerAuth": []}],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["context_id", "month", "year", "amount"],
+                "properties": {
+                  "context_id": {"type": "string", "format": "uuid"},
+                  "month": {"type": "integer"},
+                  "year": {"type": "integer"},
+                  "amount": {"type": "number"},
+                  "category_id": {"type": "string", "format": "uuid", "nullable": true}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Budget created"
+          }
+        }
+      }
+    },
+    "/budgets/{budget}": {
+      "put": {
+        "tags": ["Budgets"],
+        "summary": "Update budget amount",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {"name": "budget", "in": "path", "required": true, "schema": {"type": "string", "format": "uuid"}}
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["amount"],
+                "properties": {
+                  "amount": {"type": "number"}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Budget updated"
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Budgets"],
+        "summary": "Delete budget",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {"name": "budget", "in": "path", "required": true, "schema": {"type": "string", "format": "uuid"}}
+        ],
+        "responses": {
+          "200": {
+            "description": "Budget deleted"
+          }
+        }
+      }
+    },
+    "/contexts": {
+      "get": {
+        "tags": ["Context"],
+        "summary": "List all user contexts",
+        "security": [{"bearerAuth": []}],
+        "responses": {
+          "200": {
+            "description": "User contexts"
+          }
+        }
+      }
+    },
+    "/contexts/groups": {
+      "post": {
+        "tags": ["Context"],
+        "summary": "Create a group",
+        "security": [{"bearerAuth": []}],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name"],
+                "properties": {
+                  "name": {"type": "string", "example": "Trip to Paris"}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Group created"
+          }
+        }
+      }
+    },
+    "/contexts/join": {
+      "post": {
+        "tags": ["Context"],
+        "summary": "Join a group via invite code",
+        "security": [{"bearerAuth": []}],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["invite_code"],
+                "properties": {
+                  "invite_code": {"type": "string"}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Join request sent"
+          }
+        }
+      }
+    },
+    "/contexts/{context}": {
+      "get": {
+        "tags": ["Context"],
+        "summary": "Get context details",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {"name": "context", "in": "path", "required": true, "schema": {"type": "string", "format": "uuid"}}
+        ],
+        "responses": {
+          "200": {
+            "description": "Context details with members"
+          }
+        }
+      }
+    },
+    "/contexts/{context}/approve/{userId}": {
+      "post": {
+        "tags": ["Context"],
+        "summary": "Approve pending member",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {"name": "context", "in": "path", "required": true, "schema": {"type": "string", "format": "uuid"}},
+          {"name": "userId", "in": "path", "required": true, "schema": {"type": "string", "format": "uuid"}}
+        ],
+        "responses": {
+          "200": {
+            "description": "Member approved"
+          }
+        }
+      }
+    },
+    "/contexts/{context}/members/{userId}": {
+      "delete": {
+        "tags": ["Context"],
+        "summary": "Remove member from context",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {"name": "context", "in": "path", "required": true, "schema": {"type": "string", "format": "uuid"}},
+          {"name": "userId", "in": "path", "required": true, "schema": {"type": "string", "format": "uuid"}}
+        ],
+        "responses": {
+          "200": {
+            "description": "Member removed"
+          }
+        }
+      }
+    },
+    "/contexts/{context}/transfer-admin": {
+      "post": {
+        "tags": ["Context"],
+        "summary": "Transfer admin rights",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {"name": "context", "in": "path", "required": true, "schema": {"type": "string", "format": "uuid"}}
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["user_id"],
+                "properties": {
+                  "user_id": {"type": "string", "format": "uuid"}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Admin rights transferred"
+          }
+        }
+      }
+    },
+    "/contexts/{context}/revoke-invite": {
+      "post": {
+        "tags": ["Context"],
+        "summary": "Revoke and regenerate invite code",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {"name": "context", "in": "path", "required": true, "schema": {"type": "string", "format": "uuid"}}
+        ],
+        "responses": {
+          "200": {
+            "description": "New invite code generated"
+          }
+        }
+      }
+    }
+  }
+}
