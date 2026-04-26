@@ -12,7 +12,7 @@ use OpenApi\Annotations as OA;
  * )
  *
  * @OA\Server(
- *     url="http://expense-management-api.test//api",
+ *     url="http://localhost:8000/api",
  *     description="Local Server"
  * )
  *
@@ -20,7 +20,8 @@ use OpenApi\Annotations as OA;
  *     securityScheme="bearerAuth",
  *     type="http",
  *     scheme="bearer",
- *     bearerFormat="JWT"
+ *     bearerFormat="JWT",
+ *     description="Enter JWT token (Bearer <token>)"
  * )
  */
 class OpenApi {}

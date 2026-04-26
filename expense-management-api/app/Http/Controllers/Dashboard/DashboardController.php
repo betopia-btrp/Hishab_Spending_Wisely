@@ -9,11 +9,26 @@ use App\Models\Balance;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 
+/**
+ * @OA\Tag(name="Dashboard")
+ */
+
 class DashboardController extends Controller
 {
     /**
      * GET /api/dashboard?context_id=xxx
      * Overview: total spent, your balance, member count
+     */
+
+    /**
+     * @OA\Get(
+     *     path="/api/dashboard",
+     *     tags={"Dashboard"},
+     *     security={{"bearerAuth":{}}},
+     *     summary="Dashboard overview",
+     *     @OA\Parameter(name="context_id", in="query", required=true, @OA\Schema(type="string", format="uuid")),
+     *     @OA\Response(response=200, description="Dashboard data")
+     * )
      */
     public function index(): JsonResponse
     {
@@ -60,6 +75,17 @@ class DashboardController extends Controller
      * GET /api/dashboard/chart?context_id=xxx
      * Daily totals for the last 30 days
      */
+
+    /**
+     * @OA\Get(
+     *     path="/api/dashboard/chart",
+     *     tags={"Dashboard"},
+     *     security={{"bearerAuth":{}}},
+     *     summary="Daily expense chart (last 30 days)",
+     *     @OA\Parameter(name="context_id", in="query", required=true, @OA\Schema(type="string", format="uuid")),
+     *     @OA\Response(response=200, description="Chart data")
+     * )
+     */
     public function chart(): JsonResponse
     {
         $contextId = request('context_id');
@@ -90,6 +116,17 @@ class DashboardController extends Controller
     /**
      * GET /api/dashboard/activity?context_id=xxx
      * Recent expenses and settlements
+     */
+
+    /**
+     * @OA\Get(
+     *     path="/api/dashboard/activity",
+     *     tags={"Dashboard"},
+     *     security={{"bearerAuth":{}}},
+     *     summary="Recent activity",
+     *     @OA\Parameter(name="context_id", in="query", required=true, @OA\Schema(type="string", format="uuid")),
+     *     @OA\Response(response=200, description="Recent expenses")
+     * )
      */
     public function activity(): JsonResponse
     {

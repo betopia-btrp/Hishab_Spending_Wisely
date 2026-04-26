@@ -3,60 +3,31 @@
   "info": {
     "title": "SpendWise API",
     "version": "1.0.0",
-    "description": "API for managing expenses, budgets, balances and group contexts",
-    "contact": {
-      "email": "support@spendwise.com"
-    }
+    "description": "API for managing expenses, budgets, balances and group contexts"
   },
   "servers": [
     {
-      "url": "http://expense-management-api.test//api",
-      "description": "Local API Server"
+      "url": "http://localhost:8000/api",
+      "description": "Local Development Server"
     }
-  ],
-  "components": {
-    "securitySchemes": {
-      "bearerAuth": {
-        "type": "http",
-        "scheme": "bearer",
-        "bearerFormat": "JWT",
-        "description": "Enter JWT token in format: Bearer <token>"
-      }
-    }
-  },
-  "security": [
-    {
-      "bearerAuth": []
-    }
-  ],
-  "tags": [
-    {"name": "Auth", "description": "Authentication APIs"},
-    {"name": "OAuth", "description": "OAuth authentication APIs"},
-    {"name": "Password Reset", "description": "Password reset APIs"},
-    {"name": "Profile", "description": "User profile APIs"},
-    {"name": "Categories", "description": "Expense category APIs"},
-    {"name": "Expenses", "description": "Expense management APIs"},
-    {"name": "Balances", "description": "Balance and settlement APIs"},
-    {"name": "Budgets", "description": "Budget management APIs"},
-    {"name": "Context", "description": "Context/group management APIs"}
   ],
   "paths": {
     "/auth/register": {
       "post": {
-        "tags": ["Auth"],
+        "tags": ["Authentication"],
         "summary": "Register a new user",
-        "operationId": "register",
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["name", "email", "password"],
+                "required": ["name", "email", "password", "password_confirmation"],
                 "properties": {
-                  "name": {"type": "string", "example": "Rukaiya"},
-                  "email": {"type": "string", "format": "email", "example": "rukaiya@email.com"},
-                  "password": {"type": "string", "example": "12345678"}
+                  "name": { "type": "string", "example": "John Doe" },
+                  "email": { "type": "string", "format": "email", "example": "john@example.com" },
+                  "password": { "type": "string", "format": "password", "example": "password123" },
+                  "password_confirmation": { "type": "string", "format": "password", "example": "password123" }
                 }
               }
             }
@@ -70,24 +41,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "message": {"type": "string"},
-                    "user": {"type": "object"},
-                    "token": {"type": "string"},
-                    "token_type": {"type": "string"},
-                    "expires_in": {"type": "integer"}
+                    "message": { "type": "string" },
+                    "user": { "$ref": "#/components/schemas/User" },
+                    "token": { "type": "string" },
+                    "token_type": { "type": "string", "example": "bearer" },
+                    "expires_in": { "type": "integer" }
                   }
                 }
               }
             }
-          }
+          },
+          "422": { "$ref": "#/components/responses/ValidationError" }
         }
       }
     },
     "/auth/login": {
       "post": {
-        "tags": ["Auth"],
-        "summary": "Login user and get JWT token",
-        "operationId": "login",
+        "tags": ["Authentication"],
+        "summary": "Login and get JWT token",
         "requestBody": {
           "required": true,
           "content": {
@@ -96,8 +67,8 @@
                 "type": "object",
                 "required": ["email", "password"],
                 "properties": {
-                  "email": {"type": "string", "format": "email", "example": "rukaiya@email.com"},
-                  "password": {"type": "string", "example": "12345678"}
+                  "email": { "type": "string", "format": "email", "example": "john@example.com" },
+                  "password": { "type": "string", "format": "password", "example": "password123" }
                 }
               }
             }
@@ -111,26 +82,87 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "user": {"type": "object"},
-                    "token": {"type": "string"},
-                    "token_type": {"type": "string"},
-                    "expires_in": {"type": "integer"}
+                    "user": { "$ref": "#/components/schemas/User" },
+                    "token": { "type": "string" },
+                    "token_type": { "type": "string", "example": "bearer" },
+                    "expires_in": { "type": "integer" }
                   }
                 }
               }
             }
           },
-          "401": {
-            "description": "Invalid credentials"
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "Logout (invalidate token)",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Logged out successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string", "example": "Logged out successfully." }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/me": {
+      "get": {
+        "tags": ["Authentication"],
+        "summary": "Get authenticated user",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Current user data",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/User" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/refresh": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "Refresh JWT token",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Token refreshed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "user": { "$ref": "#/components/schemas/User" },
+                    "token": { "type": "string" },
+                    "token_type": { "type": "string", "example": "bearer" },
+                    "expires_in": { "type": "integer" }
+                  }
+                }
+              }
+            }
           }
         }
       }
     },
     "/auth/forgot-password": {
       "post": {
-        "tags": ["Password Reset"],
-        "summary": "Request password reset email",
-        "operationId": "forgotPassword",
+        "tags": ["Authentication"],
+        "summary": "Send password reset link",
         "requestBody": {
           "required": true,
           "content": {
@@ -139,7 +171,7 @@
                 "type": "object",
                 "required": ["email"],
                 "properties": {
-                  "email": {"type": "string", "format": "email", "example": "user@email.com"}
+                  "email": { "type": "string", "format": "email", "example": "john@example.com" }
                 }
               }
             }
@@ -147,28 +179,38 @@
         },
         "responses": {
           "200": {
-            "description": "Password reset link sent"
-          }
+            "description": "Reset link sent",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string", "example": "Password reset link sent to your email." }
+                  }
+                }
+              }
+            }
+          },
+          "422": { "$ref": "#/components/responses/ValidationError" }
         }
       }
     },
     "/auth/reset-password": {
       "post": {
-        "tags": ["Password Reset"],
+        "tags": ["Authentication"],
         "summary": "Reset password with token",
-        "operationId": "resetPassword",
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["email", "password", "password_confirmation", "token"],
+                "required": ["email", "token", "password", "password_confirmation"],
                 "properties": {
-                  "email": {"type": "string", "format": "email"},
-                  "password": {"type": "string"},
-                  "password_confirmation": {"type": "string"},
-                  "token": {"type": "string"}
+                  "email": { "type": "string", "format": "email" },
+                  "token": { "type": "string" },
+                  "password": { "type": "string", "format": "password" },
+                  "password_confirmation": { "type": "string", "format": "password" }
                 }
               }
             }
@@ -176,25 +218,35 @@
         },
         "responses": {
           "200": {
-            "description": "Password reset successfully"
-          }
+            "description": "Password reset successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string", "example": "Password reset successfully. Please log in." }
+                  }
+                }
+              }
+            }
+          },
+          "422": { "$ref": "#/components/responses/ValidationError" }
         }
       }
     },
     "/auth/google/redirect": {
       "get": {
         "tags": ["OAuth"],
-        "summary": "Redirect to Google OAuth",
-        "operationId": "redirectToGoogle",
+        "summary": "Get Google OAuth redirect URL",
         "responses": {
           "200": {
-            "description": "Redirect URL",
+            "description": "Google OAuth redirect URL",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "redirect_url": {"type": "string"}
+                    "redirect_url": { "type": "string" }
                   }
                 }
               }
@@ -207,63 +259,40 @@
       "get": {
         "tags": ["OAuth"],
         "summary": "Handle Google OAuth callback",
-        "operationId": "handleGoogleCallback",
         "responses": {
           "200": {
-            "description": "Login successful with JWT token"
-          }
-        }
-      }
-    },
-    "/auth/logout": {
-      "post": {
-        "tags": ["Auth"],
-        "summary": "Logout user",
-        "security": [{"bearerAuth": []}],
-        "responses": {
-          "200": {
-            "description": "Logged out successfully"
-          }
-        }
-      }
-    },
-    "/auth/me": {
-      "get": {
-        "tags": ["Auth"],
-        "summary": "Get authenticated user",
-        "security": [{"bearerAuth": []}],
-        "responses": {
-          "200": {
-            "description": "User data"
-          }
-        }
-      }
-    },
-    "/auth/refresh": {
-      "post": {
-        "tags": ["Auth"],
-        "summary": "Refresh JWT token",
-        "security": [{"bearerAuth": []}],
-        "responses": {
-          "200": {
-            "description": "Token refreshed"
-          }
+            "description": "Login successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "user": { "$ref": "#/components/schemas/User" },
+                    "token": { "type": "string" },
+                    "token_type": { "type": "string", "example": "bearer" },
+                    "expires_in": { "type": "integer" }
+                  }
+                }
+              }
+            }
+          },
+          "422": { "$ref": "#/components/responses/ValidationError" }
         }
       }
     },
     "/auth/profile": {
       "patch": {
         "tags": ["Profile"],
-        "summary": "Update profile",
-        "security": [{"bearerAuth": []}],
+        "summary": "Update user profile",
+        "security": [{ "bearerAuth": [] }],
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
                 "properties": {
-                  "name": {"type": "string"},
-                  "avatar_url": {"type": "string", "format": "uri"}
+                  "name": { "type": "string", "example": "John Updated" },
+                  "avatar_url": { "type": "string", "format": "uri" }
                 }
               }
             }
@@ -271,7 +300,18 @@
         },
         "responses": {
           "200": {
-            "description": "Profile updated"
+            "description": "Profile updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string" },
+                    "user": { "$ref": "#/components/schemas/User" }
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -279,21 +319,30 @@
     "/categories": {
       "get": {
         "tags": ["Categories"],
-        "summary": "List system and custom categories",
-        "security": [{"bearerAuth": []}],
+        "summary": "List categories for a context",
+        "security": [{ "bearerAuth": [] }],
         "parameters": [
-          {"name": "context_id", "in": "query", "required": true, "schema": {"type": "string", "format": "uuid"}}
+          { "name": "context_id", "in": "query", "required": true, "schema": { "type": "string", "format": "uuid" } }
         ],
         "responses": {
           "200": {
-            "description": "Categories list"
-          }
+            "description": "List of categories",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/Category" }
+                }
+              }
+            }
+          },
+          "422": { "$ref": "#/components/responses/ValidationError" }
         }
       },
       "post": {
         "tags": ["Categories"],
-        "summary": "Create custom category (Pro users only)",
-        "security": [{"bearerAuth": []}],
+        "summary": "Create a custom category (Pro only)",
+        "security": [{ "bearerAuth": [] }],
         "requestBody": {
           "required": true,
           "content": {
@@ -302,32 +351,41 @@
                 "type": "object",
                 "required": ["context_id", "name", "icon"],
                 "properties": {
-                  "context_id": {"type": "string", "format": "uuid"},
-                  "name": {"type": "string"},
-                  "icon": {"type": "string"}
+                  "context_id": { "type": "string", "format": "uuid" },
+                  "name": { "type": "string", "example": "Groceries" },
+                  "icon": { "type": "string", "example": "shopping-cart" }
                 }
               }
             }
           }
         },
         "responses": {
-          "201": {
-            "description": "Category created"
-          }
+          "201": { "description": "Category created" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
         }
       }
     },
     "/categories/{category}": {
       "delete": {
         "tags": ["Categories"],
-        "summary": "Delete custom category",
-        "security": [{"bearerAuth": []}],
+        "summary": "Delete a custom category",
+        "security": [{ "bearerAuth": [] }],
         "parameters": [
-          {"name": "category", "in": "path", "required": true, "schema": {"type": "string", "format": "uuid"}}
+          { "name": "category", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
         ],
         "responses": {
           "200": {
-            "description": "Category deleted"
+            "description": "Category deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string", "example": "Category deleted." }
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -335,41 +393,66 @@
     "/expenses": {
       "get": {
         "tags": ["Expenses"],
-        "summary": "List expenses with filters",
-        "security": [{"bearerAuth": []}],
+        "summary": "List expenses (paginated, filterable)",
+        "security": [{ "bearerAuth": [] }],
         "parameters": [
-          {"name": "context_id", "in": "query", "required": true, "schema": {"type": "string", "format": "uuid"}},
-          {"name": "date_from", "in": "query", "schema": {"type": "string", "format": "date"}},
-          {"name": "date_to", "in": "query", "schema": {"type": "string", "format": "date"}},
-          {"name": "category_id", "in": "query", "schema": {"type": "string", "format": "uuid"}},
-          {"name": "keyword", "in": "query", "schema": {"type": "string"}},
-          {"name": "per_page", "in": "query", "schema": {"type": "integer", "default": 20}}
+          { "name": "context_id", "in": "query", "required": true, "schema": { "type": "string", "format": "uuid" } },
+          { "name": "date_from", "in": "query", "schema": { "type": "string", "format": "date" } },
+          { "name": "date_to", "in": "query", "schema": { "type": "string", "format": "date" } },
+          { "name": "category_id", "in": "query", "schema": { "type": "string", "format": "uuid" } },
+          { "name": "keyword", "in": "query", "schema": { "type": "string" } },
+          { "name": "per_page", "in": "query", "schema": { "type": "integer", "default": 20 } }
         ],
         "responses": {
           "200": {
-            "description": "Expenses list"
+            "description": "Paginated expenses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": { "type": "array", "items": { "$ref": "#/components/schemas/Expense" } },
+                    "current_page": { "type": "integer" },
+                    "last_page": { "type": "integer" },
+                    "per_page": { "type": "integer" },
+                    "total": { "type": "integer" }
+                  }
+                }
+              }
+            }
           }
         }
       },
       "post": {
         "tags": ["Expenses"],
-        "summary": "Create new expense",
-        "security": [{"bearerAuth": []}],
+        "summary": "Create a new expense",
+        "security": [{ "bearerAuth": [] }],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["context_id", "amount", "category_id"],
+                "required": ["context_id", "amount", "expense_date", "split_type"],
                 "properties": {
-                  "context_id": {"type": "string", "format": "uuid"},
-                  "amount": {"type": "number", "example": 500},
-                  "category_id": {"type": "string", "format": "uuid"},
-                  "note": {"type": "string"},
-                  "expense_date": {"type": "string", "format": "date"},
-                  "split_type": {"type": "string", "enum": ["equal", "custom", "percentage"]},
-                  "splits": {"type": "array", "items": {"type": "object"}}
+                  "context_id": { "type": "string", "format": "uuid" },
+                  "description": { "type": "string", "maxLength": 255 },
+                  "category_id": { "type": "string", "format": "uuid", "nullable": true },
+                  "amount": { "type": "number", "minimum": 0.01, "example": 50.00 },
+                  "expense_date": { "type": "string", "format": "date", "example": "2026-04-26" },
+                  "note": { "type": "string", "maxLength": 500 },
+                  "split_type": { "type": "string", "enum": ["none", "equal", "custom", "percentage"] },
+                  "splits": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "user_id": { "type": "string", "format": "uuid" },
+                        "share_amount": { "type": "number" },
+                        "percentage": { "type": "number" }
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -377,31 +460,50 @@
         },
         "responses": {
           "201": {
-            "description": "Expense created"
-          }
+            "description": "Expense created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string", "example": "Expense logged successfully." },
+                    "expense": { "$ref": "#/components/schemas/Expense" }
+                  }
+                }
+              }
+            }
+          },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "422": { "$ref": "#/components/responses/ValidationError" }
         }
       }
     },
     "/expenses/{expense}": {
       "get": {
         "tags": ["Expenses"],
-        "summary": "Get expense details",
-        "security": [{"bearerAuth": []}],
+        "summary": "Get a single expense",
+        "security": [{ "bearerAuth": [] }],
         "parameters": [
-          {"name": "expense", "in": "path", "required": true, "schema": {"type": "string", "format": "uuid"}}
+          { "name": "expense", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
         ],
         "responses": {
           "200": {
-            "description": "Expense details"
-          }
+            "description": "Expense details",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Expense" }
+              }
+            }
+          },
+          "403": { "$ref": "#/components/responses/Forbidden" }
         }
       },
       "put": {
         "tags": ["Expenses"],
-        "summary": "Update expense",
-        "security": [{"bearerAuth": []}],
+        "summary": "Update an expense",
+        "security": [{ "bearerAuth": [] }],
         "parameters": [
-          {"name": "expense", "in": "path", "required": true, "schema": {"type": "string", "format": "uuid"}}
+          { "name": "expense", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
         ],
         "requestBody": {
           "content": {
@@ -409,11 +511,23 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "amount": {"type": "number"},
-                  "category_id": {"type": "string", "format": "uuid"},
-                  "note": {"type": "string"},
-                  "split_type": {"type": "string"},
-                  "splits": {"type": "array"}
+                  "description": { "type": "string" },
+                  "category_id": { "type": "string", "format": "uuid", "nullable": true },
+                  "amount": { "type": "number" },
+                  "expense_date": { "type": "string", "format": "date" },
+                  "note": { "type": "string" },
+                  "split_type": { "type": "string", "enum": ["none", "equal", "custom", "percentage"] },
+                  "splits": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "user_id": { "type": "string", "format": "uuid" },
+                        "share_amount": { "type": "number" },
+                        "percentage": { "type": "number" }
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -421,21 +535,44 @@
         },
         "responses": {
           "200": {
-            "description": "Expense updated"
-          }
+            "description": "Expense updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string" },
+                    "expense": { "$ref": "#/components/schemas/Expense" }
+                  }
+                }
+              }
+            }
+          },
+          "403": { "$ref": "#/components/responses/Forbidden" }
         }
       },
       "delete": {
         "tags": ["Expenses"],
-        "summary": "Delete expense",
-        "security": [{"bearerAuth": []}],
+        "summary": "Delete an expense (reverses balance changes)",
+        "security": [{ "bearerAuth": [] }],
         "parameters": [
-          {"name": "expense", "in": "path", "required": true, "schema": {"type": "string", "format": "uuid"}}
+          { "name": "expense", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
         ],
         "responses": {
           "200": {
-            "description": "Expense deleted"
-          }
+            "description": "Expense deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string", "example": "Expense deleted successfully." }
+                  }
+                }
+              }
+            }
+          },
+          "403": { "$ref": "#/components/responses/Forbidden" }
         }
       }
     },
@@ -443,48 +580,112 @@
       "patch": {
         "tags": ["Expenses"],
         "summary": "Mark expense as settled",
-        "security": [{"bearerAuth": []}],
+        "security": [{ "bearerAuth": [] }],
         "parameters": [
-          {"name": "expense", "in": "path", "required": true, "schema": {"type": "string", "format": "uuid"}}
+          { "name": "expense", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
         ],
         "responses": {
           "200": {
-            "description": "Expense marked as settled"
-          }
+            "description": "Expense marked as settled",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string" },
+                    "expense": { "$ref": "#/components/schemas/Expense" }
+                  }
+                }
+              }
+            }
+          },
+          "403": { "$ref": "#/components/responses/Forbidden" }
         }
       }
     },
     "/balances/summary": {
       "get": {
         "tags": ["Balances"],
-        "summary": "Get balance summary (who owes whom)",
-        "security": [{"bearerAuth": []}],
+        "summary": "Get balance summary for a context",
+        "security": [{ "bearerAuth": [] }],
         "parameters": [
-          {"name": "context_id", "in": "query", "required": true, "schema": {"type": "string", "format": "uuid"}}
+          { "name": "context_id", "in": "query", "required": true, "schema": { "type": "string", "format": "uuid" } }
         ],
         "responses": {
           "200": {
-            "description": "Balance summary"
-          }
+            "description": "Balance summary",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "balances": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "from_user": { "$ref": "#/components/schemas/User" },
+                          "to_user": { "$ref": "#/components/schemas/User" },
+                          "amount": { "type": "number" }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": { "$ref": "#/components/responses/Forbidden" }
         }
       }
     },
     "/balances/settlements": {
+      "get": {
+        "tags": ["Balances"],
+        "summary": "Get settlement history",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "context_id", "in": "query", "required": true, "schema": { "type": "string", "format": "uuid" } },
+          { "name": "per_page", "in": "query", "schema": { "type": "integer", "default": 20 } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Settlement history",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/Settlement" }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      },
       "post": {
         "tags": ["Balances"],
         "summary": "Record a settlement",
-        "security": [{"bearerAuth": []}],
+        "security": [{ "bearerAuth": [] }],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["context_id", "amount", "settled_by"],
+                "required": ["context_id", "payer_id", "receiver_id", "amount"],
                 "properties": {
-                  "context_id": {"type": "string", "format": "uuid"},
-                  "amount": {"type": "number"},
-                  "settled_by": {"type": "string", "format": "uuid"}
+                  "context_id": { "type": "string", "format": "uuid" },
+                  "payer_id": { "type": "string", "format": "uuid" },
+                  "receiver_id": { "type": "string", "format": "uuid" },
+                  "amount": { "type": "number", "minimum": 0.01 },
+                  "method": { "type": "string", "example": "cash", "maxLength": 50 },
+                  "note": { "type": "string", "maxLength": 300 }
                 }
               }
             }
@@ -492,45 +693,61 @@
         },
         "responses": {
           "201": {
-            "description": "Settlement recorded"
-          }
-        }
-      },
-      "get": {
-        "tags": ["Balances"],
-        "summary": "Get settlement history",
-        "security": [{"bearerAuth": []}],
-        "parameters": [
-          {"name": "context_id", "in": "query", "required": true, "schema": {"type": "string", "format": "uuid"}},
-          {"name": "per_page", "in": "query", "schema": {"type": "integer", "default": 20}}
-        ],
-        "responses": {
-          "200": {
-            "description": "Settlement history"
-          }
+            "description": "Settlement recorded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string" },
+                    "settlement": { "$ref": "#/components/schemas/Settlement" }
+                  }
+                }
+              }
+            }
+          },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "422": { "$ref": "#/components/responses/ValidationError" }
         }
       }
     },
     "/budgets": {
       "get": {
         "tags": ["Budgets"],
-        "summary": "List budgets with progress",
-        "security": [{"bearerAuth": []}],
+        "summary": "List budgets with progress for a month",
+        "security": [{ "bearerAuth": [] }],
         "parameters": [
-          {"name": "context_id", "in": "query", "required": true, "schema": {"type": "string", "format": "uuid"}},
-          {"name": "month", "in": "query", "required": true, "schema": {"type": "integer", "minimum": 1, "maximum": 12}},
-          {"name": "year", "in": "query", "required": true, "schema": {"type": "integer", "minimum": 2000}}
+          { "name": "context_id", "in": "query", "required": true, "schema": { "type": "string", "format": "uuid" } },
+          { "name": "month", "in": "query", "required": true, "schema": { "type": "integer", "minimum": 1, "maximum": 12 } },
+          { "name": "year", "in": "query", "required": true, "schema": { "type": "integer", "minimum": 2000, "maximum": 2100 } }
         ],
         "responses": {
           "200": {
-            "description": "Budgets with progress"
-          }
+            "description": "Budgets with consumed percentages",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "month": { "type": "integer" },
+                    "year": { "type": "integer" },
+                    "budgets": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/Budget" }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "422": { "$ref": "#/components/responses/ValidationError" }
         }
       },
       "post": {
         "tags": ["Budgets"],
-        "summary": "Create budget",
-        "security": [{"bearerAuth": []}],
+        "summary": "Create a budget (overall or per-category)",
+        "security": [{ "bearerAuth": [] }],
         "requestBody": {
           "required": true,
           "content": {
@@ -539,11 +756,11 @@
                 "type": "object",
                 "required": ["context_id", "month", "year", "amount"],
                 "properties": {
-                  "context_id": {"type": "string", "format": "uuid"},
-                  "month": {"type": "integer"},
-                  "year": {"type": "integer"},
-                  "amount": {"type": "number"},
-                  "category_id": {"type": "string", "format": "uuid", "nullable": true}
+                  "context_id": { "type": "string", "format": "uuid" },
+                  "category_id": { "type": "string", "format": "uuid", "nullable": true, "description": "Null for overall budget" },
+                  "month": { "type": "integer", "minimum": 1, "maximum": 12 },
+                  "year": { "type": "integer", "minimum": 2000, "maximum": 2100 },
+                  "amount": { "type": "number", "minimum": 0.01 }
                 }
               }
             }
@@ -551,8 +768,21 @@
         },
         "responses": {
           "201": {
-            "description": "Budget created"
-          }
+            "description": "Budget created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string" },
+                    "budget": { "$ref": "#/components/schemas/Budget" }
+                  }
+                }
+              }
+            }
+          },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "422": { "$ref": "#/components/responses/ValidationError" }
         }
       }
     },
@@ -560,9 +790,9 @@
       "put": {
         "tags": ["Budgets"],
         "summary": "Update budget amount",
-        "security": [{"bearerAuth": []}],
+        "security": [{ "bearerAuth": [] }],
         "parameters": [
-          {"name": "budget", "in": "path", "required": true, "schema": {"type": "string", "format": "uuid"}}
+          { "name": "budget", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
         ],
         "requestBody": {
           "required": true,
@@ -572,7 +802,7 @@
                 "type": "object",
                 "required": ["amount"],
                 "properties": {
-                  "amount": {"type": "number"}
+                  "amount": { "type": "number", "minimum": 0.01 }
                 }
               }
             }
@@ -580,41 +810,72 @@
         },
         "responses": {
           "200": {
-            "description": "Budget updated"
-          }
+            "description": "Budget updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string" },
+                    "budget": { "$ref": "#/components/schemas/Budget" }
+                  }
+                }
+              }
+            }
+          },
+          "403": { "$ref": "#/components/responses/Forbidden" }
         }
       },
       "delete": {
         "tags": ["Budgets"],
-        "summary": "Delete budget",
-        "security": [{"bearerAuth": []}],
+        "summary": "Delete a budget",
+        "security": [{ "bearerAuth": [] }],
         "parameters": [
-          {"name": "budget", "in": "path", "required": true, "schema": {"type": "string", "format": "uuid"}}
+          { "name": "budget", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
         ],
         "responses": {
           "200": {
-            "description": "Budget deleted"
-          }
+            "description": "Budget deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string", "example": "Budget deleted." }
+                  }
+                }
+              }
+            }
+          },
+          "403": { "$ref": "#/components/responses/Forbidden" }
         }
       }
     },
     "/contexts": {
       "get": {
-        "tags": ["Context"],
-        "summary": "List all user contexts",
-        "security": [{"bearerAuth": []}],
+        "tags": ["Contexts"],
+        "summary": "List user's contexts (personal + groups)",
+        "security": [{ "bearerAuth": [] }],
         "responses": {
           "200": {
-            "description": "User contexts"
+            "description": "List of contexts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/Context" }
+                }
+              }
+            }
           }
         }
       }
     },
     "/contexts/groups": {
       "post": {
-        "tags": ["Context"],
-        "summary": "Create a group",
-        "security": [{"bearerAuth": []}],
+        "tags": ["Contexts"],
+        "summary": "Create a new group context",
+        "security": [{ "bearerAuth": [] }],
         "requestBody": {
           "required": true,
           "content": {
@@ -623,7 +884,8 @@
                 "type": "object",
                 "required": ["name"],
                 "properties": {
-                  "name": {"type": "string", "example": "Trip to Paris"}
+                  "name": { "type": "string", "maxLength": 100, "example": "House Expenses" },
+                  "description": { "type": "string", "maxLength": 500 }
                 }
               }
             }
@@ -631,16 +893,30 @@
         },
         "responses": {
           "201": {
-            "description": "Group created"
-          }
+            "description": "Group created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string" },
+                    "context": { "$ref": "#/components/schemas/Context" },
+                    "invite_code": { "type": "string" },
+                    "invite_link": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "422": { "$ref": "#/components/responses/ValidationError" }
         }
       }
     },
     "/contexts/join": {
       "post": {
-        "tags": ["Context"],
+        "tags": ["Contexts"],
         "summary": "Join a group via invite code",
-        "security": [{"bearerAuth": []}],
+        "security": [{ "bearerAuth": [] }],
         "requestBody": {
           "required": true,
           "content": {
@@ -649,7 +925,7 @@
                 "type": "object",
                 "required": ["invite_code"],
                 "properties": {
-                  "invite_code": {"type": "string"}
+                  "invite_code": { "type": "string" }
                 }
               }
             }
@@ -657,65 +933,106 @@
         },
         "responses": {
           "200": {
-            "description": "Join request sent"
-          }
+            "description": "Join request sent",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string", "example": "Join request sent. Waiting for admin approval." },
+                    "context": { "$ref": "#/components/schemas/Context" }
+                  }
+                }
+              }
+            }
+          },
+          "422": { "$ref": "#/components/responses/ValidationError" }
         }
       }
     },
     "/contexts/{context}": {
       "get": {
-        "tags": ["Context"],
-        "summary": "Get context details",
-        "security": [{"bearerAuth": []}],
+        "tags": ["Contexts"],
+        "summary": "Get context details with members",
+        "security": [{ "bearerAuth": [] }],
         "parameters": [
-          {"name": "context", "in": "path", "required": true, "schema": {"type": "string", "format": "uuid"}}
+          { "name": "context", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
         ],
         "responses": {
           "200": {
-            "description": "Context details with members"
-          }
+            "description": "Context details",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Context" }
+              }
+            }
+          },
+          "403": { "$ref": "#/components/responses/Forbidden" }
         }
       }
     },
     "/contexts/{context}/approve/{userId}": {
       "post": {
-        "tags": ["Context"],
-        "summary": "Approve pending member",
-        "security": [{"bearerAuth": []}],
+        "tags": ["Contexts"],
+        "summary": "Approve a pending member (admin only)",
+        "security": [{ "bearerAuth": [] }],
         "parameters": [
-          {"name": "context", "in": "path", "required": true, "schema": {"type": "string", "format": "uuid"}},
-          {"name": "userId", "in": "path", "required": true, "schema": {"type": "string", "format": "uuid"}}
+          { "name": "context", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } },
+          { "name": "userId", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
         ],
         "responses": {
           "200": {
-            "description": "Member approved"
-          }
+            "description": "Member approved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string", "example": "Member approved." },
+                    "member": { "$ref": "#/components/schemas/ContextMember" }
+                  }
+                }
+              }
+            }
+          },
+          "403": { "$ref": "#/components/responses/Forbidden" }
         }
       }
     },
     "/contexts/{context}/members/{userId}": {
       "delete": {
-        "tags": ["Context"],
-        "summary": "Remove member from context",
-        "security": [{"bearerAuth": []}],
+        "tags": ["Contexts"],
+        "summary": "Remove a member (admin only)",
+        "security": [{ "bearerAuth": [] }],
         "parameters": [
-          {"name": "context", "in": "path", "required": true, "schema": {"type": "string", "format": "uuid"}},
-          {"name": "userId", "in": "path", "required": true, "schema": {"type": "string", "format": "uuid"}}
+          { "name": "context", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } },
+          { "name": "userId", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
         ],
         "responses": {
           "200": {
-            "description": "Member removed"
-          }
+            "description": "Member removed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string", "example": "Member removed successfully." }
+                  }
+                }
+              }
+            }
+          },
+          "403": { "$ref": "#/components/responses/Forbidden" }
         }
       }
     },
     "/contexts/{context}/transfer-admin": {
       "post": {
-        "tags": ["Context"],
-        "summary": "Transfer admin rights",
-        "security": [{"bearerAuth": []}],
+        "tags": ["Contexts"],
+        "summary": "Transfer admin rights to another member",
+        "security": [{ "bearerAuth": [] }],
         "parameters": [
-          {"name": "context", "in": "path", "required": true, "schema": {"type": "string", "format": "uuid"}}
+          { "name": "context", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
         ],
         "requestBody": {
           "required": true,
@@ -725,7 +1042,7 @@
                 "type": "object",
                 "required": ["user_id"],
                 "properties": {
-                  "user_id": {"type": "string", "format": "uuid"}
+                  "user_id": { "type": "string", "format": "uuid" }
                 }
               }
             }
@@ -733,22 +1050,311 @@
         },
         "responses": {
           "200": {
-            "description": "Admin rights transferred"
-          }
+            "description": "Admin rights transferred",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string", "example": "Admin rights transferred successfully." }
+                  }
+                }
+              }
+            }
+          },
+          "403": { "$ref": "#/components/responses/Forbidden" }
         }
       }
     },
     "/contexts/{context}/revoke-invite": {
       "post": {
-        "tags": ["Context"],
-        "summary": "Revoke and regenerate invite code",
-        "security": [{"bearerAuth": []}],
+        "tags": ["Contexts"],
+        "summary": "Revoke current invite code and generate new one",
+        "security": [{ "bearerAuth": [] }],
         "parameters": [
-          {"name": "context", "in": "path", "required": true, "schema": {"type": "string", "format": "uuid"}}
+          { "name": "context", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
         ],
         "responses": {
           "200": {
-            "description": "New invite code generated"
+            "description": "Invite code revoked",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string" },
+                    "invite_code": { "type": "string" },
+                    "invite_link": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/dashboard": {
+      "get": {
+        "tags": ["Dashboard"],
+        "summary": "Dashboard overview (total spent, balance, member count)",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "context_id", "in": "query", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Dashboard overview",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "total_spent": { "type": "number" },
+                    "your_balance": { "type": "number" },
+                    "member_count": { "type": "integer" }
+                  }
+                }
+              }
+            }
+          },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/dashboard/chart": {
+      "get": {
+        "tags": ["Dashboard"],
+        "summary": "Daily expense totals (last 30 days)",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "context_id", "in": "query", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Daily totals array",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "date": { "type": "string", "format": "date" },
+                      "total": { "type": "number" }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/dashboard/activity": {
+      "get": {
+        "tags": ["Dashboard"],
+        "summary": "Recent expenses activity (last 10)",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "context_id", "in": "query", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Recent activity feed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/Expense" }
+                }
+              }
+            }
+          },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Enter JWT token (Bearer <token>)"
+      }
+    },
+    "schemas": {
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "name": { "type": "string" },
+          "email": { "type": "string", "format": "email" },
+          "avatar_url": { "type": "string", "nullable": true },
+          "is_premium": { "type": "boolean" },
+          "plan_id": { "type": "string", "format": "uuid", "nullable": true },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "Category": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "context_id": { "type": "string", "format": "uuid", "nullable": true },
+          "name": { "type": "string" },
+          "icon": { "type": "string" },
+          "is_system": { "type": "boolean" },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "Expense": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "context_id": { "type": "string", "format": "uuid" },
+          "category_id": { "type": "string", "format": "uuid", "nullable": true },
+          "created_by": { "type": "string", "format": "uuid" },
+          "amount": { "type": "number" },
+          "expense_date": { "type": "string", "format": "date" },
+          "note": { "type": "string", "nullable": true },
+          "split_type": { "type": "string", "enum": ["none", "equal", "custom", "percentage"] },
+          "is_settled": { "type": "boolean" },
+          "category": { "$ref": "#/components/schemas/Category" },
+          "creator": { "$ref": "#/components/schemas/User" },
+          "splits": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/ExpenseSplit" }
+          },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "ExpenseSplit": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "expense_id": { "type": "string", "format": "uuid" },
+          "user_id": { "type": "string", "format": "uuid" },
+          "share_amount": { "type": "number", "nullable": true },
+          "percentage": { "type": "number", "nullable": true },
+          "user": { "$ref": "#/components/schemas/User" }
+        }
+      },
+      "Budget": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "context_id": { "type": "string", "format": "uuid" },
+          "category_id": { "type": "string", "format": "uuid", "nullable": true },
+          "month": { "type": "integer" },
+          "year": { "type": "integer" },
+          "amount": { "type": "number" },
+          "spent": { "type": "number", "description": "Amount spent so far (calculated)" },
+          "percentage": { "type": "number", "description": "Percentage consumed (calculated)" },
+          "category": { "$ref": "#/components/schemas/Category" },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "Context": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "owner_id": { "type": "string", "format": "uuid" },
+          "name": { "type": "string" },
+          "type": { "type": "string", "enum": ["personal", "group"] },
+          "description": { "type": "string", "nullable": true },
+          "invite_code": { "type": "string", "nullable": true },
+          "members": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/ContextMember" }
+          },
+          "pendingMembers": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/ContextMember" }
+          },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "ContextMember": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "context_id": { "type": "string", "format": "uuid" },
+          "user_id": { "type": "string", "format": "uuid" },
+          "role": { "type": "string", "enum": ["admin", "member"] },
+          "status": { "type": "string", "enum": ["active", "pending", "removed"] },
+          "user": { "$ref": "#/components/schemas/User" },
+          "created_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "Settlement": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "context_id": { "type": "string", "format": "uuid" },
+          "payer_id": { "type": "string", "format": "uuid" },
+          "receiver_id": { "type": "string", "format": "uuid" },
+          "amount": { "type": "number" },
+          "method": { "type": "string", "nullable": true },
+          "note": { "type": "string", "nullable": true },
+          "payer": { "$ref": "#/components/schemas/User" },
+          "receiver": { "$ref": "#/components/schemas/User" },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" }
+        }
+      }
+    },
+    "responses": {
+      "Unauthorized": {
+        "description": "Unauthorized",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "message": { "type": "string", "example": "Invalid credentials." }
+              }
+            }
+          }
+        }
+      },
+      "Forbidden": {
+        "description": "Forbidden",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "message": { "type": "string" }
+              }
+            }
+          }
+        }
+      },
+      "ValidationError": {
+        "description": "Validation error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "message": { "type": "string" },
+                "errors": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "array",
+                    "items": { "type": "string" }
+                  }
+                }
+              }
+            }
           }
         }
       }
