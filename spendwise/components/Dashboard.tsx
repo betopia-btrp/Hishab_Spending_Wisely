@@ -21,7 +21,7 @@ import { formatCurrency } from '@/lib/utils';
 import api from '@/lib/axios';
 import { useAppContext } from '@/contexts/AppContext';
 import { DashboardSummary } from '@/types';
-import NewExpenseModal from './NewExpenseModal';
+import NewExpenseModal from '@/components/(Expenses)/NewExpenseModal';
 
 export default function Dashboard() {
   const { currentContext } = useAppContext();

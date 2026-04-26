@@ -12,13 +12,13 @@ import { useAppContext } from '@/contexts/AppContext';
 import Layout from '@/components/Layout';
 import Login from '@/components/Login';
 import Dashboard from '@/components/Dashboard';
-import Expenses from '@/components/Expenses';
-import Balances from '@/components/Balances';
-import Budgets from '@/components/Budgets';
+import Expenses from '@/components/(Expenses)/Expenses';
+import Balances from '@/components/(Balances)/Balances';
+import Budgets from '@/components/(Budgets)/Budgets';
 import LandingPage from '@/components/LandingPage';
-import BudgetModal from '@/components/BudgetModal';
-import NewContext from '@/components/NewContext';
-import InviteCodeModal from '@/components/InviteCodeModal';
+import BudgetModal from '@/components/(Budgets)/BudgetModal';
+import NewContext from '@/components/NewContext/NewContext';
+import InviteCodeModal from '@/components/NewContext/InviteCodeModal';
 import { ContextType } from '@/types';
 
 const Reminders = () => (

@@ -183,13 +183,13 @@ export default function Budgets() {
             <div className="flex items-end justify-between mb-4">
               <div>
                 <p className="text-4xl font-black text-slate-900 tracking-tighter">{formatCurrency(totalSpent)}</p>
-                <p className="text-sm text-slate-400 font-medium">of {formatCurrency(totalBudget)}</p>
+                <p className="text-sm text-slate-400 font-medium">Budget: {formatCurrency(totalBudget)}</p>
               </div>
               <p className={cn(
                 "text-xl font-black",
                 totalBudget - totalSpent >= 0 ? "text-emerald-600" : "text-rose-600"
               )}>
-                {formatCurrency(totalBudget - totalSpent)} left
+                {formatCurrency(totalBudget - totalSpent)} remaining
               </p>
             </div>
             <div className="w-full h-4 bg-slate-100 rounded-full overflow-hidden border border-slate-50">
