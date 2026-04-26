@@ -1,0 +1,11 @@
+{
+  "name": "SpendWise",
+  "description": "A context-aware expense management platform for personal and group finances, featuring real-time balance calculations, budget tracking, and automated settlements.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "expense_tracking",
+    "group_management",
+    "budgeting",
+    "settlements"
+  ]
+}

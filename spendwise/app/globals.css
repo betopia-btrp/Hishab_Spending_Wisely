@@ -1,0 +1,19 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  --color-primary: #636B2F;
+  --color-primary-foreground: #ffffff;
+}
+
+@layer base {
+  body {
+    @apply font-sans bg-slate-50 text-slate-900 antialiased;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-[--color-primary] text-white px-4 py-2 rounded-xl font-semibold hover:opacity-90 transition shadow-sm;
+  }
+}
