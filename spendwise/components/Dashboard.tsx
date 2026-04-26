@@ -16,20 +16,22 @@ import {
   Cell
 } from 'recharts';
 import { TrendingUp, CreditCard, Users, ArrowUpRight, Plus, Download } from 'lucide-react';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { formatCurrency } from '@/lib/utils';
 import api from '@/lib/axios';
 import { useAppContext } from '@/contexts/AppContext';
 import { DashboardSummary } from '@/types';
-import NewExpenseModal from '@/components/(Expenses)/NewExpenseModal';
+import NewExpenseModal from '@/components/Expenses/NewExpenseModal';
+import BudgetModal from '@/components/Budgets/BudgetModal';
 
 export default function Dashboard() {
   const { currentContext } = useAppContext();
   const [data, setData] = useState<DashboardSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [showBudgetModal, setShowBudgetModal] = useState(false);
 
-  const fetchDashboard = useCallback(async () => {
+  const fetchDashboard = async () => {
     if (!currentContext) return;
     setLoading(true);
     try {
@@ -45,44 +47,43 @@ export default function Dashboard() {
         }),
       ]);
         
-        const expenses = (expensesRes.data.data || expensesRes.data) as any[];
-        const totalSpent = expenses.reduce((sum: number, e: any) => sum + Number(e.amount), 0);
-        
-        const budgets = budgetRes.data?.budgets || [];
-        const totalBudget = budgets.reduce((sum: number, b: any) => sum + Number(b.amount), 0);
-        
-        const categoryMap = new Map();
-        expenses.forEach((e: any) => {
-          const catName = e.category?.name || 'Other';
-          if (!categoryMap.has(catName)) {
-            categoryMap.set(catName, { name: catName, amount: 0, color: '#636B2F' });
-          }
-          const entry = categoryMap.get(catName);
-          entry.amount += Number(e.amount);
-        });
-        
-        const byCategory = Array.from(categoryMap.values());
-        
-        setData({
-          total_spent_month: totalSpent,
-          your_balance: dashRes.data.total_spent - totalBudget,
-          member_count: dashRes.data.member_count || 0,
-          total_budget: totalBudget,
-          expenses_by_category: byCategory,
-          monthly_comparison: { current: totalSpent, previous: 0 },
-          recent_expenses: expenses.slice(0, 5) || [],
-        });
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    },
-    [currentContext]);
+      const expenses = (expensesRes.data.data || expensesRes.data) as any[];
+      const totalSpent = expenses.reduce((sum: number, e: any) => sum + Number(e.amount), 0);
+      
+      const budgets = budgetRes.data?.budgets || [];
+      const totalBudget = budgets.reduce((sum: number, b: any) => sum + Number(b.amount), 0);
+      
+      const categoryMap = new Map();
+      expenses.forEach((e: any) => {
+        const catName = e.category?.name || 'Other';
+        if (!categoryMap.has(catName)) {
+          categoryMap.set(catName, { name: catName, amount: 0, color: '#636B2F' });
+        }
+        const entry = categoryMap.get(catName);
+        entry.amount += Number(e.amount);
+      });
+      
+      const byCategory = Array.from(categoryMap.values());
+      
+      setData({
+        total_spent_month: totalSpent,
+        your_balance: dashRes.data.total_spent - totalBudget,
+        member_count: dashRes.data.member_count || 0,
+        total_budget: totalBudget,
+        expenses_by_category: byCategory,
+        monthly_comparison: { current: totalSpent, previous: 0 },
+        recent_expenses: expenses.slice(0, 5) || [],
+      });
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     fetchDashboard();
-  }, [fetchDashboard]);
+  }, [currentContext]);
 
   if (loading) {
     return (
@@ -93,9 +94,9 @@ export default function Dashboard() {
   }
 
   const stats = [
-    { label: 'Total Spent', value: data?.total_spent_month || 0, icon: CreditCard, color: 'text-[#636B2F]', bg: 'bg-emerald-50' },
-    { label: 'Budget', value: data?.total_budget || 0, icon: TrendingUp, color: 'text-[#636B2F]', bg: 'bg-[#636B2F]/5' },
-    { label: 'Active Members', value: data?.member_count || 1, icon: Users, color: 'text-[#636B2F]', bg: 'bg-emerald-50' },
+    { label: 'Total Spent', value: data?.total_spent_month || 0, icon: CreditCard, color: 'text-[#636B2F]', bg: 'bg-emerald-50', onClick: () => {} },
+    { label: 'Budget', value: data?.total_budget || 0, icon: TrendingUp, color: 'text-[#636B2F]', bg: 'bg-[#636B2F]/5', onClick: () => setShowBudgetModal(true) },
+    { label: 'Active Members', value: data?.member_count || 1, icon: Users, color: 'text-[#636B2F]', bg: 'bg-emerald-50', onClick: () => {} },
   ];
 
   return (
@@ -110,19 +111,23 @@ export default function Dashboard() {
              <Download size={16} />
              Export
            </button>
-<button 
-              onClick={() => setShowModal(true)}
-              className="flex items-center gap-2 bg-[#636B2F] text-white px-4 py-2 rounded-xl text-sm font-semibold hover:opacity-90 shadow-md transition"
-            >
-              <Plus size={16} />
-              Add Expense
-            </button>
+           <button 
+             onClick={() => setShowModal(true)}
+             className="flex items-center gap-2 bg-[#636B2F] text-white px-4 py-2 rounded-xl text-sm font-semibold hover:opacity-90 shadow-md transition"
+           >
+             <Plus size={16} />
+             Add Expense
+           </button>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {stats.map((stat) => (
-          <div key={stat.label} className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center space-x-4">
+          <button 
+            key={stat.label} 
+            onClick={stat.onClick}
+            className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center space-x-4 hover:shadow-md transition text-left"
+          >
             <div className={`${stat.bg} ${stat.color} p-3 rounded-xl`}>
               <stat.icon size={20} />
             </div>
@@ -132,7 +137,7 @@ export default function Dashboard() {
                 {typeof stat.value === 'number' ? formatCurrency(stat.value) : stat.value}
               </p>
             </div>
-          </div>
+          </button>
         ))}
       </div>
 
@@ -192,6 +197,13 @@ export default function Dashboard() {
           contextId={currentContext.id}
           onClose={() => setShowModal(false)}
           onSuccess={() => { setShowModal(false); fetchDashboard(); }}
+        />
+      )}
+
+      {showBudgetModal && currentContext && (
+        <BudgetModal
+          contextId={currentContext.id}
+          onClose={() => setShowBudgetModal(false)}
         />
       )}
     </div>
