@@ -5,9 +5,11 @@ namespace App\Services;
 use App\Models\Context;
 use App\Models\ContextMember;
 use App\Models\User;
+use App\Notifications\JoinRequestNotification;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Str;
 
 class ContextService
 {
@@ -93,12 +95,12 @@ class ContextService
         // FR-CT-08: enforce member limit
         $this->enforceMemberLimit($context);
 
-        // FR-CT-04: new joiners get member role, status pending
+        // FR-CT-04: new joiners get member role, status active (auto-joined)
         ContextMember::create([
             'context_id' => $context->id,
             'user_id'    => $user->id,
             'role'       => 'member',
-            'status'     => 'pending',
+            'status'     => 'active',
         ]);
 
         return $context->load('members.user');
@@ -118,6 +120,9 @@ class ContextService
         $this->enforceMemberLimit($context);
 
         $member->update(['status' => 'active']);
+
+        // Notify the user about approval
+        $member->user->notify(new JoinRequestNotification($member->user, $context, 'approved'));
 
         return $member->fresh('user');
     }

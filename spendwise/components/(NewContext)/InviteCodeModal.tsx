@@ -12,10 +12,11 @@ import { useState } from 'react';
 interface InviteCodeModalProps {
   groupName: string;
   code: string;
+  contextId: string;
   onClose: () => void;
 }
 
-export default function InviteCodeModal({ groupName, code, onClose }: InviteCodeModalProps) {
+export default function InviteCodeModal({ groupName, code, contextId, onClose }: InviteCodeModalProps) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {

@@ -89,8 +89,9 @@ class ContextController extends Controller
         );
 
         return response()->json([
-            'message' => 'Join request sent. Waiting for admin approval.',
+            'message' => 'Successfully joined the group.',
             'context' => $context,
+            'context_id' => $context->id,
         ], 200);
     }
 

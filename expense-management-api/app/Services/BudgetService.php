@@ -14,32 +14,32 @@ class BudgetService
      */
     public function store(array $data): Budget
     {
-        // FR-BU-04: Enforce unique constraint gracefully before hitting DB
-        $exists = Budget::where('context_id', $data['context_id'])
-            ->where('month', $data['month'])
-            ->where('year', $data['year'])
-            ->where(function ($q) use ($data) {
-                if (isset($data['category_id']) && $data['category_id']) {
-                    $q->where('category_id', $data['category_id']);
-                } else {
-                    $q->whereNull('category_id');
-                }
-            })
-            ->exists();
+        // FR-BU-04: Enforce unique constraint for base budgets only (no category, no description)
+        $isBaseBudget =
+            empty($data["category_id"]) && empty($data["description"]);
 
-        if ($exists) {
-            $label = isset($data['category_id']) ? 'category budget' : 'overall budget';
-            throw ValidationException::withMessages([
-                'budget' => "A {$label} already exists for {$data['month']}/{$data['year']} in this context.",
-            ]);
+        if ($isBaseBudget) {
+            $exists = Budget::where("context_id", $data["context_id"])
+                ->where("month", $data["month"])
+                ->where("year", $data["year"])
+                ->whereNull("category_id")
+                ->whereNull("description")
+                ->exists();
+
+            if ($exists) {
+                throw ValidationException::withMessages([
+                    "budget" => "A base budget already exists for {$data["month"]}/{$data["year"]}.",
+                ]);
+            }
         }
 
         return Budget::create([
-            'context_id'  => $data['context_id'],
-            'category_id' => $data['category_id'] ?? null,
-            'month'       => $data['month'],
-            'year'        => $data['year'],
-            'amount'      => $data['amount'],
+            "context_id" => $data["context_id"],
+            "category_id" => $data["category_id"] ?? null,
+            "month" => $data["month"],
+            "year" => $data["year"],
+            "amount" => $data["amount"],
+            "description" => $data["description"] ?? null,
         ]);
     }
 
@@ -48,8 +48,8 @@ class BudgetService
      */
     public function update(Budget $budget, float $amount): Budget
     {
-        $budget->update(['amount' => $amount]);
-        return $budget->fresh('category');
+        $budget->update(["amount" => $amount]);
+        return $budget->fresh("category");
     }
 
     /**
@@ -57,37 +57,44 @@ class BudgetService
      */
     public function getBudgetsWithProgress(
         string $contextId,
-        int    $month,
-        int    $year
+        int $month,
+        int $year,
     ): array {
-        $budgets = Budget::with('category:id,name,icon')
-            ->where('context_id', $contextId)
-            ->where('month', $month)
-            ->where('year', $year)
+        $budgets = Budget::with("category:id,name,icon")
+            ->where("context_id", $contextId)
+            ->where("month", $month)
+            ->where("year", $year)
             ->get();
 
-        return $budgets->map(function (Budget $budget) use ($contextId, $month, $year) {
-            $spent = $this->calculateSpent($contextId, $month, $year, $budget->category_id);
+        return $budgets
+            ->map(function (Budget $budget) use ($contextId, $month, $year) {
+                $spent = $this->calculateSpent(
+                    $contextId,
+                    $month,
+                    $year,
+                    $budget->category_id,
+                );
 
-            $budgetAmount = (float) $budget->amount;
-            $percentage   = $budgetAmount > 0
-                ? round(($spent / $budgetAmount) * 100, 2)
-                : 0;
+                $budgetAmount = (float) $budget->amount;
+                $percentage =
+                    $budgetAmount > 0
+                        ? round(($spent / $budgetAmount) * 100, 2)
+                        : 0;
 
-            return [
-                'id'            => $budget->id,
-                'category'      => $budget->category,
-                'category_id'   => $budget->category_id,
-                'month'         => $budget->month,
-                'year'          => $budget->year,
-                'amount'        => $budgetAmount,
-                'spent_amount'  => $spent,
-                'remaining'     => round($budgetAmount - $spent, 2),
-                'percentage'    => $percentage,
-                'percentage_used' => $percentage,
-                'status'        => $this->getBudgetStatus($percentage),
-            ];
-        })->toArray();
+                return [
+                    "id" => $budget->id,
+                    "category" => $budget->category, // null = overall budget
+                    "description" => $budget->description,
+                    "month" => $budget->month,
+                    "year" => $budget->year,
+                    "budget" => $budgetAmount,
+                    "spent" => $spent,
+                    "remaining" => round($budgetAmount - $spent, 2),
+                    "percentage" => $percentage, // FR-BU-03
+                    "status" => $this->getBudgetStatus($percentage),
+                ];
+            })
+            ->toArray();
     }
 
     /**
@@ -106,17 +113,17 @@ class BudgetService
      * If null — sum ALL expenses (overall budget).
      */
     private function calculateSpent(
-        string  $contextId,
-        int     $month,
-        int     $year,
-        ?string $categoryId
+        string $contextId,
+        int $month,
+        int $year,
+        ?string $categoryId,
     ): float {
-        return (float) Expense::where('context_id', $contextId)
-            ->whereYear('expense_date', $year)
-            ->whereMonth('expense_date', $month)
-            ->whereNull('deleted_at')
-            ->when($categoryId, fn($q) => $q->where('category_id', $categoryId))
-            ->sum('amount');
+        return (float) Expense::where("context_id", $contextId)
+            ->whereYear("expense_date", $year)
+            ->whereMonth("expense_date", $month)
+            ->whereNull("deleted_at")
+            ->when($categoryId, fn($q) => $q->where("category_id", $categoryId))
+            ->sum("amount");
     }
 
     /**
@@ -124,10 +131,10 @@ class BudgetService
      */
     private function getBudgetStatus(float $percentage): string
     {
-        return match(true) {
-            $percentage >= 100 => 'exceeded',
-            $percentage >= 80  => 'warning',
-            default            => 'on_track',
+        return match (true) {
+            $percentage >= 100 => "exceeded",
+            $percentage >= 80 => "warning",
+            default => "on_track",
         };
     }
 }

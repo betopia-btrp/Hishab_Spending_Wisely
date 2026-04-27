@@ -12,6 +12,7 @@ import api from '@/lib/axios';
 import { useAppContext } from '@/contexts/AppContext';
 import { Expense, Category } from '@/types';
 import NewExpenseModal from './NewExpenseModal';
+import EditExpenseModal from './EditExpenseModal';
 
 export default function Expenses() {
   const { currentContext } = useAppContext();
@@ -20,6 +21,7 @@ export default function Expenses() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
+  const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
 
   const fetchData = async () => {
     if (!currentContext) return;
@@ -48,6 +50,16 @@ export default function Expenses() {
     e.note?.toLowerCase().includes(search.toLowerCase()) ||
     e.category?.name?.toLowerCase().includes(search.toLowerCase())
   );
+
+  const handleDelete = async (expense: Expense) => {
+    if (!confirm('Delete this expense?')) return;
+    try {
+      await api.delete(`/auth/expenses/${expense.id}`);
+      fetchData();
+    } catch (err) {
+      console.error('Failed to delete expense', err);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -147,8 +159,8 @@ export default function Expenses() {
                     </td>
                     <td className="px-8 py-5 text-right">
                       <div className="flex items-center justify-end space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button className="p-2 hover:bg-slate-200 rounded-xl text-slate-400 hover:text-slate-700 transition" title="Edit"><Edit2 size={14} /></button>
-                        <button className="p-2 hover:bg-rose-50 rounded-xl text-slate-400 hover:text-rose-600 transition" title="Delete"><Trash2 size={14} /></button>
+                        <button onClick={() => setEditingExpense(expense)} className="p-2 hover:bg-slate-200 rounded-xl text-slate-400 hover:text-slate-700 transition" title="Edit"><Edit2 size={14} /></button>
+                        <button onClick={() => handleDelete(expense)} className="p-2 hover:bg-rose-50 rounded-xl text-slate-400 hover:text-rose-600 transition" title="Delete"><Trash2 size={14} /></button>
                       </div>
                     </td>
                   </tr>
@@ -171,6 +183,15 @@ export default function Expenses() {
           contextId={currentContext.id} 
           onClose={() => setShowModal(false)}
           onSuccess={fetchData}
+        />
+      )}
+
+      {editingExpense && currentContext && (
+        <EditExpenseModal
+          expense={editingExpense}
+          contextId={currentContext.id}
+          onClose={() => setEditingExpense(null)}
+          onSuccess={() => { setEditingExpense(null); fetchData(); }}
         />
       )}
     </div>

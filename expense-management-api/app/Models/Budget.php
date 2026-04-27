@@ -17,6 +17,7 @@ class Budget extends Model
         'month',
         'year',
         'amount',
+        'description',
     ];
 
     protected $casts = [
