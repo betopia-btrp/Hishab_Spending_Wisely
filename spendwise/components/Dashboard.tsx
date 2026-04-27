@@ -27,7 +27,7 @@ import { useEffect, useState } from "react";
 import { formatCurrency } from "@/lib/utils";
 import api from "@/lib/axios";
 import { useAppContext } from "@/contexts/AppContext";
-import { DashboardSummary } from "@/types";
+import { DashboardSummary, ContextMember } from "@/types";
 import NewExpenseModal from "@/components/(Expenses)/NewExpenseModal";
 
 export default function Dashboard() {
@@ -41,13 +41,13 @@ export default function Dashboard() {
     setLoading(true);
     try {
       const [dashRes, expensesRes, budgetRes] = await Promise.all([
-        api.get(`/auth/dashboard`, {
+        api.get(`/dashboard`, {
           params: { context_id: currentContext.id },
         }),
-        api.get(`/auth/expenses`, {
+        api.get(`/expenses`, {
           params: { context_id: currentContext.id },
         }),
-        api.get(`/auth/budgets`, {
+        api.get(`/budgets`, {
           params: {
             context_id: currentContext.id,
             month: new Date().getMonth() + 1,
@@ -91,9 +91,11 @@ export default function Dashboard() {
         your_balance: dashRes.data.total_spent - totalBudget,
         member_count: dashRes.data.member_count || 0,
         total_budget: totalBudget,
+        budget_utilization: totalBudget > 0 ? totalSpent / totalBudget : 0,
         expenses_by_category: byCategory,
         monthly_comparison: { current: totalSpent, previous: 0 },
         recent_expenses: expenses.slice(0, 5) || [],
+        active_members: dashRes.data.active_members || [],
       });
     } catch (err) {
       console.error(err);
@@ -135,14 +137,6 @@ export default function Dashboard() {
       icon: TrendingUp,
       color: "text-[#636B2F]",
       bg: "bg-[#636B2F]/5",
-      onClick: () => {},
-    },
-    {
-      label: "Active Members",
-      value: data?.member_count || 1,
-      icon: Users,
-      color: "text-[#636B2F]",
-      bg: "bg-emerald-50",
       onClick: () => {},
     },
   ];
@@ -246,10 +240,43 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-          <h3 className="text-lg font-bold text-slate-900 mb-6">
-            Quick Activity
-          </h3>
+        <div className="flex flex-col gap-6">
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+            <h3 className="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2">
+              <Users size={18} className="text-[#636B2F]" />
+              Active Members ({data?.member_count || 0})
+            </h3>
+            <div className="space-y-3">
+              {data?.active_members.map((member: ContextMember) => (
+                <div
+                  key={member.id}
+                  className="flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50 transition"
+                >
+                  <div className="w-9 h-9 rounded-full bg-[#636B2F]/10 flex items-center justify-center text-[#636B2F] text-sm font-black">
+                    {(member.user?.name || "U")[0].toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-slate-900 truncate">
+                      {member.user?.name || "Unknown"}
+                    </p>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
+                      {member.role === "admin" ? "Admin" : "Member"}
+                    </p>
+                  </div>
+                </div>
+              ))}
+              {(!data?.active_members || data.active_members.length === 0) && (
+                <p className="text-slate-400 text-center py-8 italic text-sm">
+                  No active members
+                </p>
+              )}
+            </div>
+          </div>
+
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+            <h3 className="text-lg font-bold text-slate-900 mb-6">
+              Quick Activity
+            </h3>
           <div className="space-y-4">
             {data?.recent_expenses.length === 0 ? (
               <p className="text-slate-400 text-center py-8 italic text-sm">
@@ -286,6 +313,7 @@ export default function Dashboard() {
               View History
             </button>
           </div>
+        </div>
         </div>
       </div>
 

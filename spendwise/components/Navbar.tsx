@@ -15,7 +15,9 @@ import {
   X,
   Check,
   Clock,
+  Sparkles,
 } from "lucide-react";
+import Link from "next/link";
 import { useAppContext } from "@/contexts/AppContext";
 import { useAuth } from "@/contexts/AuthContext";
 import api from "@/lib/axios";
@@ -49,7 +51,7 @@ export default function Navbar() {
   const fetchNotifications = async () => {
     if (!user) return;
     try {
-      const res = await api.get("/auth/notifications");
+      const res = await api.get("/notifications");
       setNotifications(res.data.notifications || []);
       setUnreadCount(res.data.unread_count || 0);
     } catch (err: any) {
@@ -70,7 +72,7 @@ export default function Navbar() {
 
   const markAsRead = async (id: string) => {
     try {
-      await api.put(`/auth/notifications/${id}/read`);
+      await api.put(`/notifications/${id}/read`);
       setNotifications((prev) =>
         prev.map((n) =>
           n.id === id ? { ...n, read_at: new Date().toISOString() } : n,
@@ -84,7 +86,7 @@ export default function Navbar() {
 
   const markAllAsRead = async () => {
     try {
-      await api.put("/auth/notifications/read-all");
+      await api.put("/notifications/read-all");
       setNotifications((prev) =>
         prev.map((n) => ({ ...n, read_at: new Date().toISOString() })),
       );

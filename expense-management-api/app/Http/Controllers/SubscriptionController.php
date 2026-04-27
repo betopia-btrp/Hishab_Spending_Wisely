@@ -23,7 +23,6 @@ class SubscriptionController extends Controller
             'id', 'name', 'price_monthly', 'price_yearly',
             'stripe_price_monthly_id', 'stripe_price_yearly_id',
             'max_groups', 'max_members_per_group',
-            'custom_categories', 'budget_rollover',
         ]);
         return response()->json($plans);
     }
@@ -113,8 +112,11 @@ class SubscriptionController extends Controller
             return response()->json(['error' => 'User not found'], 404);
         }
 
+        $proPlan = Plan::where('name', 'pro')->first();
+
         $user->update([
             'is_premium' => true,
+            'plan_id' => $proPlan?->id,
             'stripe_customer_id' => $session->customer,
             'stripe_subscription_id' => $session->subscription,
         ]);
@@ -130,7 +132,7 @@ class SubscriptionController extends Controller
         $user = Auth::user();
         return response()->json([
             'is_premium' => $user->is_premium,
-            'plan' => $user->plan?->only(['name', 'max_groups', 'max_members_per_group', 'custom_categories', 'budget_rollover']),
+            'plan' => $user->plan?->only(['name', 'max_groups', 'max_members_per_group']),
         ]);
     }
 
@@ -139,8 +141,11 @@ class SubscriptionController extends Controller
         $user = User::find($session->metadata->user_id);
         if (!$user) return;
 
+        $proPlan = Plan::where('name', 'pro')->first();
+
         $user->update([
             'is_premium' => true,
+            'plan_id' => $proPlan?->id,
             'stripe_customer_id' => $session->customer,
             'stripe_subscription_id' => $session->subscription,
         ]);

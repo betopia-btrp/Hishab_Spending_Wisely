@@ -34,12 +34,6 @@ const freePlan: Plan = {
   features: [
     { text: '1 group', included: true },
     { text: 'Up to 4 members per group', included: true },
-    { text: 'Basic expense tracking', included: true },
-    { text: 'Equal split', included: true },
-    { text: 'Basic categories', included: true },
-    { text: 'Custom categories', included: false },
-    { text: 'Custom & percentage splits', included: false },
-    { text: 'Budget rollover', included: false },
   ],
   cta: 'Current Plan',
   highlighted: false,
@@ -85,11 +79,6 @@ function PricingContent() {
         features: [
           { text: 'Unlimited groups', included: true },
           { text: 'Unlimited members', included: true },
-          { text: 'Equal, custom & percentage splits', included: true },
-          { text: 'Custom categories', included: true },
-          { text: 'Budget rollover', included: true },
-          { text: 'Priority support', included: true },
-          { text: 'Advanced analytics', included: true },
         ],
         cta: 'Log in to subscribe',
         highlighted: true,
@@ -101,43 +90,17 @@ function PricingContent() {
     axios.get('/subscriptions/plans')
       .then((res) => {
         const backendPlan = res.data[0];
-        if (!backendPlan || !backendPlan.stripe_price_monthly_id) {
-          const proPlan: Plan = {
-            name: 'Pro',
-            price: 9.99,
-            price_monthly: 9.99,
-            features: [
-              { text: 'Unlimited groups', included: true },
-              { text: 'Unlimited members', included: true },
-              { text: 'Equal, custom & percentage splits', included: true },
-              { text: 'Custom categories', included: true },
-              { text: 'Budget rollover', included: true },
-              { text: 'Priority support', included: true },
-              { text: 'Advanced analytics', included: true },
-            ],
-            cta: backendPlan ? 'Set up Stripe →' : 'Coming soon',
-            highlighted: true,
-          };
-          setPlans([freePlan, proPlan]);
-          return;
-        }
-
         const proPlan: Plan = {
           name: 'Pro',
-          price: Number(backendPlan.price_monthly),
-          price_monthly: Number(backendPlan.price_monthly),
+          price: backendPlan ? Number(backendPlan.price_monthly) : 9.99,
+          price_monthly: backendPlan ? Number(backendPlan.price_monthly) : 9.99,
           features: [
             { text: 'Unlimited groups', included: true },
             { text: 'Unlimited members', included: true },
-            { text: 'Equal, custom & percentage splits', included: true },
-            { text: 'Custom categories', included: true },
-            { text: 'Budget rollover', included: true },
-            { text: 'Priority support', included: true },
-            { text: 'Advanced analytics', included: true },
           ],
-          cta: 'Subscribe',
+          cta: backendPlan?.stripe_price_monthly_id ? 'Subscribe' : 'Coming soon',
           highlighted: true,
-          priceId: backendPlan.stripe_price_monthly_id,
+          priceId: backendPlan?.stripe_price_monthly_id,
         };
         setPlans([freePlan, proPlan]);
       })
@@ -149,11 +112,6 @@ function PricingContent() {
           features: [
             { text: 'Unlimited groups', included: true },
             { text: 'Unlimited members', included: true },
-            { text: 'Equal, custom & percentage splits', included: true },
-            { text: 'Custom categories', included: true },
-            { text: 'Budget rollover', included: true },
-            { text: 'Priority support', included: true },
-            { text: 'Advanced analytics', included: true },
           ],
           cta: 'Coming soon',
           highlighted: true,
@@ -163,11 +121,6 @@ function PricingContent() {
   }, [isAuthenticated]);
 
   const handleSubscribe = async (priceId: string | undefined) => {
-    if (!priceId) {
-      setMessage({ type: 'error', text: 'Stripe not configured. Set NEXT_PUBLIC_STRIPE_PRO_PRICE_MONTHLY in .env' });
-      return;
-    }
-
     if (!isAuthenticated) {
       router.push('/');
       return;
@@ -287,7 +240,7 @@ function PricingContent() {
                     if (plan.price === 0) return;
                     handleSubscribe(plan.priceId);
                   }}
-                  disabled={loading || (plan.price === 0 && !!user) || (plan.price > 0 && user?.is_premium)}
+                  disabled={loading || (plan.price === 0 && !!user) || (plan.price > 0 && user?.is_premium) || (plan.price > 0 && !plan.priceId)}
                   className={`w-full py-3.5 rounded-2xl font-bold text-sm transition-all ${
                     plan.price === 0
                       ? 'bg-slate-100 text-slate-400 cursor-default'

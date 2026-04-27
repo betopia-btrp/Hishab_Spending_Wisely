@@ -80,7 +80,6 @@ class ExpenseController extends Controller
     public function store(StoreExpenseRequest $request): JsonResponse
     {
         $this->ensureContextAccess($request->context_id);
-        $this->enforceProForSplitType($request->split_type);
 
         $expense = $this->expenseService->create(Auth::user(), $request->validated());
 
@@ -132,7 +131,6 @@ class ExpenseController extends Controller
     public function update(UpdateExpenseRequest $request, Expense $expense): JsonResponse
     {
         $this->authorize('modify', $expense);
-        $this->enforceProForSplitType($request->split_type);
 
         $expense = $this->expenseService->update($expense, $request->validated());
 
@@ -201,10 +199,4 @@ class ExpenseController extends Controller
         abort_if(!$isMember, 403, 'You do not have access to this context.');
     }
 
-    private function enforceProForSplitType(?string $splitType): void
-    {
-        if (in_array($splitType, ['custom', 'percentage']) && !Auth::user()->is_premium) {
-            abort(403, 'Custom and percentage splits are available for Pro users only. Please upgrade your plan.');
-        }
-    }
 }

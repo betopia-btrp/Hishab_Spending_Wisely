@@ -21,13 +21,14 @@ export default function NewContext({
   const [groupName, setGroupName] = useState("");
   const [inviteCode, setInviteCode] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { refreshContexts, switchContext } = useAppContext();
 
   const handleCreateGroup = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await api.post("/auth/contexts/groups", {
+      const res = await api.post("/contexts/groups", {
         name: groupName,
       });
       const code = res.data.invite_code;
@@ -41,8 +42,9 @@ export default function NewContext({
         switchContext(contextId);
       }
       onComplete({ name: groupName, code, id: contextId });
-    } catch (error) {
-      console.error("Failed to create group", error);
+    } catch (err: any) {
+      console.error("Failed to create group", err);
+      setError(err?.response?.data?.message || err?.message || "Failed to create group");
     } finally {
       setLoading(false);
     }
@@ -52,7 +54,7 @@ export default function NewContext({
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await api.post("/auth/contexts/join", {
+      const res = await api.post("/contexts/join", {
         invite_code: inviteCode,
       });
       const contextId = res.data.context_id;

@@ -63,7 +63,7 @@ class SyncStripePrices extends Command
 
         return Product::create([
             'name' => 'SpendWise Pro',
-            'description' => 'Unlimited groups, unlimited members, custom splits, and more.',
+            'description' => 'Unlimited groups and unlimited members.',
             'metadata' => ['plan_id' => $plan->id],
         ]);
     }

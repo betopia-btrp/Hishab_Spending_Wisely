@@ -111,4 +111,5 @@ export interface DashboardSummary {
   expenses_by_category: { name: string; amount: number; color: string }[];
   recent_expenses: Expense[];
   monthly_comparison: { current: number; previous: number };
+  active_members: ContextMember[];
 }

@@ -41,7 +41,7 @@ export default function PendingMembers({ contextId, onUpdate }: PendingMembersPr
     if (!currentContext) return;
     setLoading(true);
     try {
-      const res = await api.get(`/auth/contexts/${currentContext.id}`);
+      const res = await api.get(`/contexts/${currentContext.id}`);
       const pending = res.data.pending_members || [];
       setPendingMembers(pending);
     } catch (err) {
@@ -61,7 +61,7 @@ export default function PendingMembers({ contextId, onUpdate }: PendingMembersPr
     if (!currentContext) return;
     setProcessing(memberId);
     try {
-      await api.post(`/auth/contexts/${currentContext.id}/approve/${memberId}`);
+      await api.post(`/contexts/${currentContext.id}/approve/${memberId}`);
       setPendingMembers(prev => prev.filter(m => m.id !== memberId));
       onUpdate?.();
     } catch (err) {
@@ -75,7 +75,7 @@ export default function PendingMembers({ contextId, onUpdate }: PendingMembersPr
     if (!currentContext) return;
     setProcessing(memberId);
     try {
-      await api.delete(`/auth/contexts/${currentContext.id}/members/${memberId}`);
+      await api.delete(`/contexts/${currentContext.id}/members/${memberId}`);
       setPendingMembers(prev => prev.filter(m => m.id !== memberId));
       onUpdate?.();
     } catch (err) {

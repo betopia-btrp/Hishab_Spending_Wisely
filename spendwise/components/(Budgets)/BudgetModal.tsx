@@ -23,7 +23,7 @@ export default function BudgetModal({ contextId, onClose }: BudgetModalProps) {
       try {
         const month = new Date().getMonth() + 1;
         const year = new Date().getFullYear();
-        const res = await api.get(`/auth/budgets`, {
+        const res = await api.get(`/budgets`, {
           params: {
             context_id: contextId,
             month: month,
@@ -62,7 +62,7 @@ export default function BudgetModal({ contextId, onClose }: BudgetModalProps) {
     setLoading(true);
     try {
       if (existingBudget) {
-        await api.put(`/auth/budgets/${existingBudget.id}`, {
+        await api.put(`/budgets/${existingBudget.id}`, {
           amount: Number(amount),
         });
       } else {

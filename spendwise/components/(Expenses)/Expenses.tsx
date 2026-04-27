@@ -54,7 +54,7 @@ export default function Expenses() {
   const handleDelete = async (expense: Expense) => {
     if (!confirm('Delete this expense?')) return;
     try {
-      await api.delete(`/auth/expenses/${expense.id}`);
+      await api.delete(`/expenses/${expense.id}`);
       fetchData();
     } catch (err) {
       console.error('Failed to delete expense', err);
