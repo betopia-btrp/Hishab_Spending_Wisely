@@ -21,23 +21,21 @@ import { formatCurrency } from '@/lib/utils';
 import api from '@/lib/axios';
 import { useAppContext } from '@/contexts/AppContext';
 import { DashboardSummary } from '@/types';
-import NewExpenseModal from '@/components/Expenses/NewExpenseModal';
-import BudgetModal from '@/components/Budgets/BudgetModal';
+import NewExpenseModal from '@/components/(Expenses)/NewExpenseModal';
 
 export default function Dashboard() {
   const { currentContext } = useAppContext();
   const [data, setData] = useState<DashboardSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
-  const [showBudgetModal, setShowBudgetModal] = useState(false);
 
   const fetchDashboard = async () => {
     if (!currentContext) return;
     setLoading(true);
     try {
       const [dashRes, expensesRes, budgetRes] = await Promise.all([
-        api.get(`/auth/dashboard?context_id=${currentContext.id}`),
-        api.get(`/auth/expenses?context_id=${currentContext.id}`),
+        api.get(`/auth/dashboard`, { params: { context_id: currentContext.id } }),
+        api.get(`/auth/expenses`, { params: { context_id: currentContext.id } }),
         api.get(`/auth/budgets`, {
           params: {
             context_id: currentContext.id,
@@ -50,8 +48,13 @@ export default function Dashboard() {
       const expenses = (expensesRes.data.data || expensesRes.data) as any[];
       const totalSpent = expenses.reduce((sum: number, e: any) => sum + Number(e.amount), 0);
       
-      const budgets = budgetRes.data?.budgets || [];
-      const totalBudget = budgets.reduce((sum: number, b: any) => sum + Number(b.amount), 0);
+      const budgets = Array.isArray(budgetRes.data)
+        ? budgetRes.data
+        : budgetRes.data?.budgets ?? budgetRes.data?.data ?? [];
+      const totalBudget = budgets.reduce((sum: number, b: any) => {
+        const amt = b.budget ?? b.amount ?? 0;
+        return sum + Number(amt);
+      }, 0);
       
       const categoryMap = new Map();
       expenses.forEach((e: any) => {
@@ -84,6 +87,12 @@ export default function Dashboard() {
   useEffect(() => {
     fetchDashboard();
   }, [currentContext]);
+  // Add after: useEffect(() => { fetchDashboard(); }, [currentContext]);
+  useEffect(() => {
+  const handler = () => fetchDashboard();
+  window.addEventListener('budget-updated', handler);
+  return () => window.removeEventListener('budget-updated', handler);
+}, [currentContext]);
 
   if (loading) {
     return (
@@ -95,7 +104,7 @@ export default function Dashboard() {
 
   const stats = [
     { label: 'Total Spent', value: data?.total_spent_month || 0, icon: CreditCard, color: 'text-[#636B2F]', bg: 'bg-emerald-50', onClick: () => {} },
-    { label: 'Budget', value: data?.total_budget || 0, icon: TrendingUp, color: 'text-[#636B2F]', bg: 'bg-[#636B2F]/5', onClick: () => setShowBudgetModal(true) },
+    { label: 'Budget', value: data?.total_budget || 0, icon: TrendingUp, color: 'text-[#636B2F]', bg: 'bg-[#636B2F]/5', onClick: () => {} },
     { label: 'Active Members', value: data?.member_count || 1, icon: Users, color: 'text-[#636B2F]', bg: 'bg-emerald-50', onClick: () => {} },
   ];
 
@@ -197,13 +206,6 @@ export default function Dashboard() {
           contextId={currentContext.id}
           onClose={() => setShowModal(false)}
           onSuccess={() => { setShowModal(false); fetchDashboard(); }}
-        />
-      )}
-
-      {showBudgetModal && currentContext && (
-        <BudgetModal
-          contextId={currentContext.id}
-          onClose={() => setShowBudgetModal(false)}
         />
       )}
     </div>

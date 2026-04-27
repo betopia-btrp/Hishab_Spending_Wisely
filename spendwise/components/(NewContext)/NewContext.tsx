@@ -11,28 +11,31 @@ import { Plus, Hash, CheckCircle } from 'lucide-react';
 import api from '@/lib/axios';
 import { useAppContext } from '@/contexts/AppContext';
 
-export default function NewContext({ onComplete }: { onComplete: (info?: { name: string; code: string }) => void }) {
+export default function NewContext({ onComplete }: { onComplete: (info?: { name: string; code: string; id: string }) => void }) {
   const [mode, setMode] = useState<'select' | 'create' | 'join'>('select');
   const [groupName, setGroupName] = useState('');
   const [inviteCode, setInviteCode] = useState('');
   const [loading, setLoading] = useState(false);
-  const { refreshContexts } = useAppContext();
-
-  const generateInviteCode = (): string => {
-    return Math.floor(10000000 + Math.random() * 90000000).toString();
-  };
+  const { refreshContexts, switchContext } = useAppContext();
 
   const handleCreateGroup = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const code = generateInviteCode();
     try {
-      await api.post('/auth/contexts/groups', {
+      const res = await api.post('/auth/contexts/groups', {
         name: groupName,
-        invite_code: code
       });
+      const code = res.data.invite_code;
+      const contextId = res.data.context?.id;
+      // Refresh contexts first
       await refreshContexts();
-      onComplete({ name: groupName, code });
+      // Wait for state to update
+      await new Promise(resolve => setTimeout(resolve, 200));
+      // Then switch to the new context
+      if (contextId) {
+        switchContext(contextId);
+      }
+      onComplete({ name: groupName, code, id: contextId });
     } catch (error) {
       console.error('Failed to create group', error);
     } finally {
@@ -44,11 +47,17 @@ export default function NewContext({ onComplete }: { onComplete: (info?: { name:
     e.preventDefault();
     setLoading(true);
     try {
-      await api.post('/auth/contexts/join', {
+      const res = await api.post('/auth/contexts/join', {
         invite_code: inviteCode
       });
+      const contextId = res.data.context_id;
+      // Refresh contexts first
       await refreshContexts();
-      onComplete();
+      // Wait for state to update
+      await new Promise(resolve => setTimeout(resolve, 200));
+      // Switch to the newly joined group
+      switchContext(contextId);
+      onComplete({ name: '', code: '', id: contextId });
     } catch (error) {
       console.error('Failed to join group', error);
       alert('Invalid or expired invite code.');
@@ -118,7 +127,7 @@ export default function NewContext({ onComplete }: { onComplete: (info?: { name:
             <Hash size={32} />
           </div>
           <h3 className="text-2xl font-black text-slate-900 mb-3 tracking-tight">Join Group</h3>
-          <p className="text-slate-500 font-medium leading-relaxed mb-8">Enter an 8-digit invite code to access an existing groupledger.</p>
+          <p className="text-slate-500 font-medium leading-relaxed mb-8">Enter an 8-character invite code to access an existing groupledger.</p>
 
           {mode === 'join' && (
             <motion.form 
@@ -132,11 +141,11 @@ export default function NewContext({ onComplete }: { onComplete: (info?: { name:
                 autoFocus
                 type="text" 
                 maxLength={8}
-                placeholder="00000000"
+                placeholder="XXXXXXXX"
                 value={inviteCode}
-                onChange={e => setInviteCode(e.target.value.replace(/\D/g, ''))}
+                onChange={e => setInviteCode(e.target.value.toUpperCase().slice(0, 8))}
                 required
-                className="w-full px-6 py-4 rounded-2xl bg-slate-50 border border-slate-100 outline-none focus:ring-4 focus:ring-[#636B2F]/10 focus:border-[#636B2F] font-bold text-center tracking-[0.3em]"
+                className="w-full px-6 py-4 rounded-2xl bg-slate-50 border border-slate-100 outline-none focus:ring-4 focus:ring-[#636B2F]/10 focus:border-[#636B2F] font-bold text-center text-lg tracking-[0.2em]"
               />
               <button 
                 disabled={loading}

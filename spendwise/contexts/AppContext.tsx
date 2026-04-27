@@ -75,11 +75,27 @@ export function AppContextProvider({ children }: { children: ReactNode }) {
     }
   }, [isAuthenticated]);
 
-  const switchContext = (contextId: string) => {
+  const switchContext = async (contextId: string) => {
+    // First refresh contexts to ensure we have the latest
+    await fetchContexts();
+    
+    // Then find the context from the updated list
     const context = availableContexts.find(c => c.id === contextId);
+    
     if (context) {
       setCurrentContext(context);
       localStorage.setItem('selectedContextId', contextId);
+    } else {
+      // If not found after refresh, get it from API directly
+      try {
+        const res = await axios.get(`/auth/contexts/${contextId}`);
+        if (res.data) {
+          setCurrentContext(res.data);
+          localStorage.setItem('selectedContextId', contextId);
+        }
+      } catch (err) {
+        console.error('Failed to switch context', err);
+      }
     }
   };
 

@@ -14,24 +14,22 @@ class BudgetService
      */
     public function store(array $data): Budget
     {
-        // FR-BU-04: Enforce unique constraint gracefully before hitting DB
-        $exists = Budget::where('context_id', $data['context_id'])
-            ->where('month', $data['month'])
-            ->where('year', $data['year'])
-            ->where(function ($q) use ($data) {
-                if (isset($data['category_id']) && $data['category_id']) {
-                    $q->where('category_id', $data['category_id']);
-                } else {
-                    $q->whereNull('category_id');
-                }
-            })
-            ->exists();
+        // FR-BU-04: Enforce unique constraint for base budgets only (no category, no description)
+        $isBaseBudget = empty($data['category_id']) && empty($data['description']);
 
-        if ($exists) {
-            $label = isset($data['category_id']) ? 'category budget' : 'overall budget';
-            throw ValidationException::withMessages([
-                'budget' => "A {$label} already exists for {$data['month']}/{$data['year']} in this context.",
-            ]);
+        if ($isBaseBudget) {
+            $exists = Budget::where('context_id', $data['context_id'])
+                ->where('month', $data['month'])
+                ->where('year', $data['year'])
+                ->whereNull('category_id')
+                ->whereNull('description')
+                ->exists();
+
+            if ($exists) {
+                throw ValidationException::withMessages([
+                    'budget' => "A base budget already exists for {$data['month']}/{$data['year']}.",
+                ]);
+            }
         }
 
         return Budget::create([
@@ -40,6 +38,7 @@ class BudgetService
             'month'       => $data['month'],
             'year'        => $data['year'],
             'amount'      => $data['amount'],
+            'description' => $data['description'] ?? null,
         ]);
     }
 
@@ -77,6 +76,7 @@ class BudgetService
             return [
                 'id'          => $budget->id,
                 'category'    => $budget->category,    // null = overall budget
+                'description' => $budget->description,
                 'month'       => $budget->month,
                 'year'        => $budget->year,
                 'budget'      => $budgetAmount,

@@ -23,21 +23,28 @@ export default function BudgetModal({ contextId, onClose }: BudgetModalProps) {
       try {
         const month = new Date().getMonth() + 1;
         const year = new Date().getFullYear();
-        const res = await api.get(`/auth/budgets`, {
-          params: {
-            context_id: contextId,
-            month: month,
-            year: year,
-          },
-        });
-        if (res.data && res.data.budgets && res.data.budgets.length > 0) {
-          const budget = res.data.budgets[0];
-          if (!budget.category_id) {
-            setExistingBudget(budget);
-            setAmount(budget.amount.toString());
-            setShowConfirmUpdate(true);
+      const res = await api.get(`/auth/budgets`, {
+        params: {
+          context_id: contextId,
+          month: month,
+          year: year,
+        },
+      });
+// Normalize — backend may return array directly OR wrapped in .budgets/.data
+      const budgetList = Array.isArray(res.data)
+        ? res.data
+        : res.data?.budgets ?? res.data?.data ?? [];
+      if (budgetList.length > 0) {
+        const budget = budgetList[0];
+        if (!budget.category_id && budget) {
+            const amt = budget.budget ?? budget.amount;
+            if (amt != null && !isNaN(Number(amt))) {
+              setExistingBudget(budget);
+              setAmount(String(amt));
+              setShowConfirmUpdate(true);
+            }
           }
-        }
+      }
       } catch (error: any) {
         console.error('Failed to check budget', error.response?.data || error.message);
       } finally {
@@ -52,8 +59,7 @@ export default function BudgetModal({ contextId, onClose }: BudgetModalProps) {
     setLoading(true);
     try {
       if (existingBudget) {
-        await api.put(`/auth/budgets/${existingBudget.id}`, {
-          amount: Number(amount),
+        await api.put(`/auth/budgets/${existingBudget.id}`, {          amount: Number(amount),
         });
       } else {
         await api.post(`/auth/budgets`, {
@@ -64,6 +70,8 @@ export default function BudgetModal({ contextId, onClose }: BudgetModalProps) {
         });
       }
       setSuccess(true);
+      // Tell other components budget was updated
+      window.dispatchEvent(new CustomEvent('budget-updated'));
       setTimeout(() => {
         onClose();
       }, 1500);

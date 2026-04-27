@@ -12,13 +12,13 @@ import { useAppContext } from '@/contexts/AppContext';
 import Layout from '@/components/Layout';
 import Login from '@/components/Login';
 import Dashboard from '@/components/Dashboard';
-import Expenses from '@/components/Expenses/Expenses';
-import Balances from '@/components/Balances/Balances';
-import Budgets from '@/components/Budgets/Budgets';
+import Expenses from '@/components/(Expenses)/Expenses';
+import Balances from '@/components/(Balances)/Balances';
+import Budgets from '@/components/(Budgets)/Budgets';
 import LandingPage from '@/components/LandingPage';
-import BudgetModal from '@/components/Budgets/BudgetModal';
-import NewContext from '@/components/NewContext/NewContext';
-import InviteCodeModal from '@/components/NewContext/InviteCodeModal';
+import BudgetModal from '@/components/(Budgets)/BudgetModal';
+import NewContext from '@/components/(NewContext)/NewContext';
+import InviteCodeModal from '@/components/(NewContext)/InviteCodeModal';
 import { ContextType } from '@/types';
 
 const Reminders = () => (
@@ -35,8 +35,9 @@ function AppContent() {
   const { isAuthenticated, loading } = useAuth();
   const { currentContext, loading: contextLoading } = useAppContext();
   const [showLogin, setShowLogin] = useState(false);
+  const [inviteInfo, setInviteInfo] = useState<{ name: string; code: string; id: string } | null>(null);
   const [showBudgetPopup, setShowBudgetPopup] = useState(false);
-  const [inviteInfo, setInviteInfo] = useState<{ name: string; code: string } | null>(null);
+  const [pendingBudgetContextId, setPendingBudgetContextId] = useState<string | null>(null);
   
   const router = useRouter();
   const pathname = usePathname();
@@ -49,34 +50,55 @@ function AppContent() {
   }, [router, pathname]);
 
   useEffect(() => {
-    if (isAuthenticated && currentContext) {
+    if (!isAuthenticated) return;
+    
+    if (pendingBudgetContextId) {
+      const hasSetBudget = localStorage.getItem(`budget_set_${pendingBudgetContextId}`);
+      if (!hasSetBudget) {
+        setShowBudgetPopup(true);
+      }
+      return;
+    }
+    
+    if (currentContext) {
       const hasSetBudget = localStorage.getItem(`budget_set_${currentContext.id}`);
       if (!hasSetBudget) {
         setShowBudgetPopup(true);
       }
     }
-  }, [isAuthenticated, currentContext]);
+  }, [isAuthenticated, pendingBudgetContextId, currentContext]);
 
-  const handleCloseBudget = () => {
-    if (currentContext) {
-      localStorage.setItem(`budget_set_${currentContext.id}`, 'true');
-    }
+  const handleBudgetSuccess = (contextId: string) => {
+    localStorage.setItem(`budget_set_${contextId}`, 'true');
+    window.dispatchEvent(new Event('budget-updated'));
     setShowBudgetPopup(false);
+    setPendingBudgetContextId(null);
   };
 
-  const handleContextCreationComplete = (info?: { name: string; code: string }) => {
-    if (info) {
+  const handleCloseBudget = () => {
+    setShowBudgetPopup(false);
+    const contextId = pendingBudgetContextId || currentContext?.id;
+    if (contextId) {
+      localStorage.setItem(`budget_set_${contextId}`, 'skipped');
+    }
+    setPendingBudgetContextId(null);
+  };
+
+  const handleContextCreationComplete = (info?: { name: string; code: string; id: string }) => {
+    if (info?.id && info.name && info.code) {
       setInviteInfo(info);
+      setPendingBudgetContextId(info.id);
     } else {
       handleTabChange('dashboard');
     }
   };
 
   const handleCloseInviteModal = () => {
+    const contextId = inviteInfo?.id;
     setInviteInfo(null);
     handleTabChange('dashboard');
-    if (currentContext) {
-      setShowBudgetPopup(true);
+    if (contextId) {
+      setPendingBudgetContextId(contextId);
     }
   };
 
@@ -111,6 +133,8 @@ function AppContent() {
     }
   };
 
+  const getBudgetContextId = () => pendingBudgetContextId || currentContext?.id;
+
   return (
     <Layout activeTab={activeTab} onTabChange={handleTabChange}>
       {renderContent()}
@@ -118,15 +142,17 @@ function AppContent() {
       {inviteInfo && (
         <InviteCodeModal 
           groupName={inviteInfo.name} 
-          code={inviteInfo.code} 
+          code={inviteInfo.code}
+          contextId={inviteInfo.id}
           onClose={handleCloseInviteModal} 
         />
       )}
 
-      {showBudgetPopup && currentContext && (
+      {showBudgetPopup && getBudgetContextId() && (
         <BudgetModal 
-          contextId={currentContext.id} 
-          onClose={handleCloseBudget} 
+          contextId={getBudgetContextId()!} 
+          onClose={handleCloseBudget}
+          onSuccess={() => handleBudgetSuccess(getBudgetContextId()!)}
         />
       )}
     </Layout>

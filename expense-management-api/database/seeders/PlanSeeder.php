@@ -26,8 +26,8 @@ class PlanSeeder extends Seeder
             [
                 'id'                   => Str::uuid(),
                 'name'                 => 'pro',
-                'price_monthly'        => 9.99,
-                'price_yearly'         => 99.99,
+                'price_monthly'        => 499.99,
+                'price_yearly'         => 3999.99,
                 'max_groups'           => -1,    // -1 = unlimited
                 'max_members_per_group'=> -1,
                 'custom_categories'    => true,
