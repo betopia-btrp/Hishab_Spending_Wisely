@@ -21,8 +21,9 @@ import { formatCurrency } from '@/lib/utils';
 import api from '@/lib/axios';
 import { useAppContext } from '@/contexts/AppContext';
 import { DashboardSummary } from '@/types';
-import NewExpenseModal from '@/components/Expenses/NewExpenseModal';
-import BudgetModal from '@/components/Budgets/BudgetModal';
+import NewExpenseModal from '@/components/(Expenses)/NewExpenseModal';
+import BudgetModal from '@/components/(Budgets)/BudgetModal';
+import PendingMembers from '@/components/PendingMembers';
 
 export default function Dashboard() {
   const { currentContext } = useAppContext();
@@ -36,8 +37,8 @@ export default function Dashboard() {
     setLoading(true);
     try {
       const [dashRes, expensesRes, budgetRes] = await Promise.all([
-        api.get(`/auth/dashboard?context_id=${currentContext.id}`),
-        api.get(`/auth/expenses?context_id=${currentContext.id}`),
+        api.get(`/auth/dashboard`, { params: { context_id: currentContext.id } }),
+        api.get(`/auth/expenses`, { params: { context_id: currentContext.id } }),
         api.get(`/auth/budgets`, {
           params: {
             context_id: currentContext.id,
@@ -50,8 +51,10 @@ export default function Dashboard() {
       const expenses = (expensesRes.data.data || expensesRes.data) as any[];
       const totalSpent = expenses.reduce((sum: number, e: any) => sum + Number(e.amount), 0);
       
-      const budgets = budgetRes.data?.budgets || [];
-      const totalBudget = budgets.reduce((sum: number, b: any) => sum + Number(b.amount), 0);
+      const budgets = Array.isArray(budgetRes.data)
+        ? budgetRes.data
+        : budgetRes.data?.budgets ?? budgetRes.data?.data ?? [];
+      const totalBudget = budgets.reduce((sum: number, b: any) => sum + Number(b.budget || b.amount), 0);
       
       const categoryMap = new Map();
       expenses.forEach((e: any) => {
@@ -84,6 +87,12 @@ export default function Dashboard() {
   useEffect(() => {
     fetchDashboard();
   }, [currentContext]);
+  // Add after: useEffect(() => { fetchDashboard(); }, [currentContext]);
+useEffect(() => {
+  const handler = () => fetchDashboard();
+  window.addEventListener('budget-updated', handler);
+  return () => window.removeEventListener('budget-updated', handler);
+}, [currentContext]);
 
   if (loading) {
     return (
@@ -123,8 +132,8 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {stats.map((stat) => (
-          <button 
-            key={stat.label} 
+          <button
+            key={stat.label}
             onClick={stat.onClick}
             className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center space-x-4 hover:shadow-md transition text-left"
           >
@@ -140,6 +149,8 @@ export default function Dashboard() {
           </button>
         ))}
       </div>
+
+      {currentContext && <PendingMembers contextId={currentContext.id} />}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-slate-100">

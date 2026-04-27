@@ -11,6 +11,7 @@ use App\Http\Controllers\Expense\ExpenseController;
 use App\Http\Controllers\Balance\BalanceController;
 use App\Http\Controllers\Budget\BudgetController;
 use App\Http\Controllers\Dashboard\DashboardController;
+use App\Http\Controllers\Notification\NotificationController;
 
 /*
 |--------------------------------------------------------------------------
@@ -73,6 +74,13 @@ Route::middleware('auth:api')->prefix('auth')->group(function () {
         Route::get('/',         [DashboardController::class, 'index']);
         Route::get('/chart',    [DashboardController::class, 'chart']);
         Route::get('/activity', [DashboardController::class, 'activity']);
+    });
+
+    Route::prefix('notifications')->group(function () {
+        Route::get('/',               [NotificationController::class, 'index']);
+        Route::put('/{id}/read',     [NotificationController::class, 'markAsRead']);
+        Route::put('/read-all',      [NotificationController::class, 'markAllAsRead']);
+        Route::delete('/{id}',      [NotificationController::class, 'destroy']);
     });
 
     Route::prefix('contexts')->group(function () {

@@ -16,6 +16,7 @@ class StoreBudgetRequest extends FormRequest
             'month'       => ['required', 'integer', 'between:1,12'],
             'year'        => ['required', 'integer', 'min:2000', 'max:2100'],
             'amount'      => ['required', 'numeric', 'min:0.01'],
+            'description' => ['nullable', 'string', 'max:255'],
         ];
     }
 }
