@@ -10,31 +10,39 @@ class PlanSeeder extends Seeder
 {
     public function run(): void
     {
-        DB::table('plans')->insert([
+        $plans = [
             [
-                'id'                   => Str::uuid(),
-                'name'                 => 'free',
-                'price_monthly'        => 0,
-                'price_yearly'         => 0,
-                'max_groups'           => 1,
-                'max_members_per_group'=> 5,
-                'custom_categories'    => false,
-                'budget_rollover'      => false,
-                'created_at'           => now(),
-                'updated_at'           => now(),
+                "name" => "free",
+                "price_monthly" => 0,
+                "price_yearly" => 0,
+                "max_groups" => 1,
+                "max_members_per_group" => 4,
+                "stripe_price_monthly_id" => null,
+                "stripe_price_yearly_id" => null,
             ],
             [
-                'id'                   => Str::uuid(),
-                'name'                 => 'pro',
-                'price_monthly'        => 499.99,
-                'price_yearly'         => 3999.99,
-                'max_groups'           => -1,    // -1 = unlimited
-                'max_members_per_group'=> -1,
-                'custom_categories'    => true,
-                'budget_rollover'      => true,
-                'created_at'           => now(),
-                'updated_at'           => now(),
+                "name" => "pro",
+                "price_monthly" => 9.99,
+                "price_yearly" => 99.99,
+                "max_groups" => -1,
+                "max_members_per_group" => -1,
+                "stripe_price_monthly_id" => env("STRIPE_PRO_PRICE_MONTHLY"),
+                "stripe_price_yearly_id" => env("STRIPE_PRO_PRICE_YEARLY"),
             ],
-        ]);
+        ];
+
+        foreach ($plans as $plan) {
+            DB::table("plans")->updateOrInsert(
+                ["name" => $plan["name"]],
+                array_merge($plan, [
+                    "id" =>
+                        DB::table("plans")
+                            ->where("name", $plan["name"])
+                            ->value("id") ?? Str::uuid(),
+                    "created_at" => now(),
+                    "updated_at" => now(),
+                ]),
+            );
+        }
     }
 }

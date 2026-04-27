@@ -30,7 +30,7 @@ export function AppContextProvider({ children }: { children: ReactNode }) {
     if (!isAuthenticated) return;
     setLoading(true);
     try {
-      const res = await axios.get('/auth/contexts');
+      const res = await axios.get('/contexts');
       const data = res.data;
       
       // Backend returns { personal: Context, groups: Context[] } or array
@@ -88,7 +88,7 @@ export function AppContextProvider({ children }: { children: ReactNode }) {
     } else {
       // If not found after refresh, get it from API directly
       try {
-        const res = await axios.get(`/auth/contexts/${contextId}`);
+        const res = await axios.get(`/contexts/${contextId}`);
         if (res.data) {
           setCurrentContext(res.data);
           localStorage.setItem('selectedContextId', contextId);

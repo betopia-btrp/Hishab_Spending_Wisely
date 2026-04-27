@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import { Target, X, Check, AlertCircle } from 'lucide-react';
-import api from '@/lib/axios';
+import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "motion/react";
+import { Target, X, Check, AlertCircle } from "lucide-react";
+import api from "@/lib/axios";
 
 interface BudgetModalProps {
   contextId: string;
@@ -11,7 +11,7 @@ interface BudgetModalProps {
 }
 
 export default function BudgetModal({ contextId, onClose }: BudgetModalProps) {
-  const [amount, setAmount] = useState('');
+  const [amount, setAmount] = useState("");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [existingBudget, setExistingBudget] = useState<any>(null);
@@ -23,20 +23,20 @@ export default function BudgetModal({ contextId, onClose }: BudgetModalProps) {
       try {
         const month = new Date().getMonth() + 1;
         const year = new Date().getFullYear();
-      const res = await api.get(`/auth/budgets`, {
-        params: {
-          context_id: contextId,
-          month: month,
-          year: year,
-        },
-      });
-// Normalize — backend may return array directly OR wrapped in .budgets/.data
-      const budgetList = Array.isArray(res.data)
-        ? res.data
-        : res.data?.budgets ?? res.data?.data ?? [];
-      if (budgetList.length > 0) {
-        const budget = budgetList[0];
-        if (!budget.category_id && budget) {
+        const res = await api.get(`/budgets`, {
+          params: {
+            context_id: contextId,
+            month: month,
+            year: year,
+          },
+        });
+        // Normalize — backend may return array directly OR wrapped in .budgets/.data
+        const budgetList = Array.isArray(res.data)
+          ? res.data
+          : (res.data?.budgets ?? res.data?.data ?? []);
+        if (budgetList.length > 0) {
+          const budget = budgetList[0];
+          if (!budget.category_id && budget) {
             const amt = budget.budget ?? budget.amount;
             if (amt != null && !isNaN(Number(amt))) {
               setExistingBudget(budget);
@@ -44,9 +44,12 @@ export default function BudgetModal({ contextId, onClose }: BudgetModalProps) {
               setShowConfirmUpdate(true);
             }
           }
-      }
+        }
       } catch (error: any) {
-        console.error('Failed to check budget', error.response?.data || error.message);
+        console.error(
+          "Failed to check budget",
+          error.response?.data || error.message,
+        );
       } finally {
         setInitialCheckLoading(false);
       }
@@ -59,10 +62,11 @@ export default function BudgetModal({ contextId, onClose }: BudgetModalProps) {
     setLoading(true);
     try {
       if (existingBudget) {
-        await api.put(`/auth/budgets/${existingBudget.id}`, {          amount: Number(amount),
+        await api.put(`/budgets/${existingBudget.id}`, {
+          amount: Number(amount),
         });
       } else {
-        await api.post(`/auth/budgets`, {
+        await api.post(`/budgets`, {
           amount: Number(amount),
           context_id: contextId,
           month: new Date().getMonth() + 1,
@@ -71,12 +75,15 @@ export default function BudgetModal({ contextId, onClose }: BudgetModalProps) {
       }
       setSuccess(true);
       // Tell other components budget was updated
-      window.dispatchEvent(new CustomEvent('budget-updated'));
+      window.dispatchEvent(new CustomEvent("budget-updated"));
       setTimeout(() => {
         onClose();
       }, 1500);
     } catch (error: any) {
-      console.error('Failed to save budget', error.response?.data || error.message);
+      console.error(
+        "Failed to save budget",
+        error.response?.data || error.message,
+      );
     } finally {
       setLoading(false);
     }
@@ -92,7 +99,7 @@ export default function BudgetModal({ contextId, onClose }: BudgetModalProps) {
 
   return (
     <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         className="bg-white rounded-[2.5rem] shadow-2xl max-w-md w-full overflow-hidden border border-slate-100"
@@ -102,8 +109,8 @@ export default function BudgetModal({ contextId, onClose }: BudgetModalProps) {
             <div className="w-14 h-14 bg-emerald-50 rounded-2xl flex items-center justify-center text-[#636B2F]">
               <Target size={28} />
             </div>
-            <button 
-              onClick={onClose} 
+            <button
+              onClick={onClose}
               className="p-2 hover:bg-slate-50 rounded-xl transition text-slate-400 font-bold"
             >
               ✕
@@ -111,13 +118,12 @@ export default function BudgetModal({ contextId, onClose }: BudgetModalProps) {
           </div>
 
           <h3 className="text-2xl font-black text-slate-900 mb-2 tracking-tight">
-            {existingBudget ? 'Update Budget' : 'Set Monthly Budget'}
+            {existingBudget ? "Update Budget" : "Set Monthly Budget"}
           </h3>
           <p className="text-slate-500 font-medium leading-relaxed mb-6">
-            {existingBudget 
-              ? 'Update your monthly spending limit.' 
-              : `Set your budget for ${new Date().toLocaleString('default', { month: 'long' })} ${new Date().getFullYear()}.`
-            }
+            {existingBudget
+              ? "Update your monthly spending limit."
+              : `Set your budget for ${new Date().toLocaleString("default", { month: "long" })} ${new Date().getFullYear()}.`}
           </p>
 
           {showConfirmUpdate && (
@@ -128,7 +134,9 @@ export default function BudgetModal({ contextId, onClose }: BudgetModalProps) {
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="relative">
-              <span className="absolute left-6 top-1/2 -translate-y-1/2 font-black text-slate-400 text-xl">৳</span>
+              <span className="absolute left-6 top-1/2 -translate-y-1/2 font-black text-slate-400 text-xl">
+                ৳
+              </span>
               <input
                 type="number"
                 required
@@ -149,9 +157,7 @@ export default function BudgetModal({ contextId, onClose }: BudgetModalProps) {
               {loading ? (
                 <div className="w-6 h-6 border-4 border-white/20 border-t-white rounded-full animate-spin" />
               ) : (
-                <>
-                  {existingBudget ? 'Update Budget' : 'Save Budget'}
-                </>
+                <>{existingBudget ? "Update Budget" : "Save Budget"}</>
               )}
             </button>
           </form>

@@ -16,6 +16,10 @@ return Application::configure(basePath: dirname(__DIR__))
         \Illuminate\Http\Middleware\HandleCors::class,
         \App\Http\Middleware\ForceJson::class,
     ]);
+
+    $middleware->validateCsrfTokens(except: [
+        'api/subscriptions/webhook',
+    ]);
 })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

@@ -18,14 +18,11 @@ class Plan extends Model
         'price_yearly',
         'max_groups',
         'max_members_per_group',
-        'custom_categories',
-        'budget_rollover',
+        'stripe_price_monthly_id',
+        'stripe_price_yearly_id',
     ];
 
-    protected $casts = [
-        'custom_categories' => 'boolean',
-        'budget_rollover'   => 'boolean',
-    ];
+    protected $casts = [];
 
     public function users()
     {

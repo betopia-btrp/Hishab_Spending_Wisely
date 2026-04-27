@@ -28,8 +28,8 @@ export default function Expenses() {
     setLoading(true);
     try {
       const [expRes, catRes] = await Promise.all([
-        api.get(`/auth/expenses?context_id=${currentContext.id}`),
-        api.get(`/auth/categories?context_id=${currentContext.id}`)
+        api.get(`/expenses?context_id=${currentContext.id}`),
+        api.get(`/categories?context_id=${currentContext.id}`)
       ]);
       const expData = expRes.data.data || expRes.data;
       const catData = catRes.data.data || catRes.data;
@@ -54,7 +54,7 @@ export default function Expenses() {
   const handleDelete = async (expense: Expense) => {
     if (!confirm('Delete this expense?')) return;
     try {
-      await api.delete(`/auth/expenses/${expense.id}`);
+      await api.delete(`/expenses/${expense.id}`);
       fetchData();
     } catch (err) {
       console.error('Failed to delete expense', err);
