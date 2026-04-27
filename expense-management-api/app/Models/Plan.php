@@ -20,6 +20,8 @@ class Plan extends Model
         'max_members_per_group',
         'custom_categories',
         'budget_rollover',
+        'stripe_price_monthly_id',
+        'stripe_price_yearly_id',
     ];
 
     protected $casts = [

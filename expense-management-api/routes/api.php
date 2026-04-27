@@ -4,13 +4,14 @@ use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Auth\OAuthController;
 use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\Auth\ProfileController;
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Context\ContextController;
-use App\Http\Controllers\Expense\CategoryController;
-use App\Http\Controllers\Expense\ExpenseController;
 use App\Http\Controllers\Balance\BalanceController;
 use App\Http\Controllers\Budget\BudgetController;
+use App\Http\Controllers\Context\ContextController;
 use App\Http\Controllers\Dashboard\DashboardController;
+use App\Http\Controllers\Expense\CategoryController;
+use App\Http\Controllers\Expense\ExpenseController;
+use App\Http\Controllers\SubscriptionController;
+use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
@@ -31,15 +32,24 @@ Route::prefix('auth')->group(function () {
 
 /*
 |--------------------------------------------------------------------------
+| Stripe Webhook (public, CSRF excluded in bootstrap/app.php)
+|--------------------------------------------------------------------------
+*/
+Route::post('/subscriptions/webhook', [SubscriptionController::class, 'webhook']);
+
+/*
+|--------------------------------------------------------------------------
 | Protected Routes (JWT required)
 |--------------------------------------------------------------------------
 */
-Route::middleware('auth:api')->prefix('auth')->group(function () {
+Route::middleware('auth:api')->group(function () {
 
-    Route::post('/logout',  [AuthController::class, 'logout']);
-    Route::post('/refresh', [AuthController::class, 'refresh']);
-    Route::get('/me',       [AuthController::class, 'me']);
-    Route::patch('/profile',[ProfileController::class, 'update']);
+    Route::prefix('auth')->group(function () {
+        Route::post('/logout',  [AuthController::class, 'logout']);
+        Route::post('/refresh', [AuthController::class, 'refresh']);
+        Route::get('/me',       [AuthController::class, 'me']);
+        Route::patch('/profile',[ProfileController::class, 'update']);
+    });
 
     Route::prefix('categories')->group(function () {
         Route::get('/',          [CategoryController::class, 'index']);
@@ -84,6 +94,13 @@ Route::middleware('auth:api')->prefix('auth')->group(function () {
         Route::delete('/{context}/members/{userId}', [ContextController::class, 'removeMember']);
         Route::post('/{context}/transfer-admin', [ContextController::class, 'transferAdmin']);
         Route::post('/{context}/revoke-invite', [ContextController::class, 'revokeInviteCode']);
+    });
+
+    Route::prefix('subscriptions')->group(function () {
+        Route::get('/plans',          [SubscriptionController::class, 'plans']);
+        Route::post('/checkout',      [SubscriptionController::class, 'checkout']);
+        Route::post('/verify-session',[SubscriptionController::class, 'verifySession']);
+        Route::get('/status',         [SubscriptionController::class, 'status']);
     });
 
 });

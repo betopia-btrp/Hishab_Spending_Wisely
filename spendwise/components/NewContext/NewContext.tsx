@@ -7,7 +7,8 @@
 
 import { useState } from 'react';
 import { motion } from 'motion/react';
-import { Plus, Hash, CheckCircle } from 'lucide-react';
+import { Plus, Hash, CheckCircle, Sparkles, AlertCircle } from 'lucide-react';
+import Link from 'next/link';
 import api from '@/lib/axios';
 import { useAppContext } from '@/contexts/AppContext';
 
@@ -16,6 +17,7 @@ export default function NewContext({ onComplete }: { onComplete: (info?: { name:
   const [groupName, setGroupName] = useState('');
   const [inviteCode, setInviteCode] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { refreshContexts } = useAppContext();
 
   const generateInviteCode = (): string => {
@@ -25,16 +27,18 @@ export default function NewContext({ onComplete }: { onComplete: (info?: { name:
   const handleCreateGroup = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError(null);
     const code = generateInviteCode();
     try {
-      await api.post('/auth/contexts/groups', {
+      await api.post('/contexts/groups', {
         name: groupName,
         invite_code: code
       });
       await refreshContexts();
       onComplete({ name: groupName, code });
-    } catch (error) {
-      console.error('Failed to create group', error);
+    } catch (err: any) {
+      const msg = err?.response?.data?.errors?.plan?.[0] || err?.response?.data?.message || 'Failed to create group.';
+      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -44,7 +48,7 @@ export default function NewContext({ onComplete }: { onComplete: (info?: { name:
     e.preventDefault();
     setLoading(true);
     try {
-      await api.post('/auth/contexts/join', {
+      await api.post('/contexts/join', {
         invite_code: inviteCode
       });
       await refreshContexts();
@@ -68,7 +72,7 @@ export default function NewContext({ onComplete }: { onComplete: (info?: { name:
         {/* Create Card */}
         <motion.div 
           whileHover={{ y: -5 }}
-          onClick={() => setMode('create')}
+          onClick={() => { setMode('create'); setError(null); }}
           className={`relative p-10 rounded-[3rem] border-2 text-left transition-all overflow-hidden cursor-pointer ${
             mode === 'create' ? 'border-[#636B2F] bg-white ring-8 ring-[#636B2F]/5' : 'border-slate-100 bg-white hover:border-slate-200 shadow-xl shadow-slate-100'
           }`}
@@ -92,10 +96,31 @@ export default function NewContext({ onComplete }: { onComplete: (info?: { name:
                 type="text" 
                 placeholder="Enter workspace name"
                 value={groupName}
-                onChange={e => setGroupName(e.target.value)}
+                onChange={e => { setGroupName(e.target.value); setError(null); }}
                 required
                 className="w-full px-6 py-4 rounded-2xl bg-slate-50 border border-slate-100 outline-none focus:ring-4 focus:ring-[#636B2F]/10 focus:border-[#636B2F] font-bold"
               />
+
+              {error && (
+                <div className="p-4 rounded-2xl bg-red-50 border border-red-200">
+                  <div className="flex items-start gap-3">
+                    <AlertCircle size={18} className="text-red-500 shrink-0 mt-0.5" />
+                    <div className="text-sm text-red-700 font-medium">
+                      <p>{error}</p>
+                      {error.toLowerCase().includes('upgrade') && (
+                        <Link
+                          href="/pricing"
+                          className="inline-flex items-center gap-1.5 mt-3 px-4 py-2 bg-[#636B2F] text-white rounded-xl font-black text-xs uppercase tracking-widest hover:bg-[#4A5323] transition shadow-lg"
+                        >
+                          <Sparkles size={14} />
+                          Upgrade to Pro
+                        </Link>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <button 
                 disabled={loading}
                 className="w-full bg-[#636B2F] text-white py-4 rounded-2xl font-black shadow-lg shadow-emerald-900/10 hover:opacity-90 transition-all flex items-center justify-center gap-2"

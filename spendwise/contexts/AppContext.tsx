@@ -30,7 +30,7 @@ export function AppContextProvider({ children }: { children: ReactNode }) {
     if (!isAuthenticated) return;
     setLoading(true);
     try {
-      const res = await axios.get('/auth/contexts');
+      const res = await axios.get('/contexts');
       const data = res.data;
       
       // Backend returns { personal: Context, groups: Context[] } or array

@@ -23,6 +23,8 @@ class User extends Authenticatable implements JWTSubject
         'avatar_url',
         'google_id',
         'is_premium',
+        'stripe_customer_id',
+        'stripe_subscription_id',
     ];
 
     protected $hidden = [

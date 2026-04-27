@@ -24,7 +24,7 @@ export default function Balances() {
       if (!currentContext) return;
       setLoading(true);
       try {
-        const res = await api.get(`/auth/balances/summary?context_id=${currentContext.id}`);
+        const res = await api.get(`/balances/summary?context_id=${currentContext.id}`);
         setBalances(res.data);
       } catch (err) {
         console.error(err);

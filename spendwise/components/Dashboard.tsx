@@ -36,9 +36,9 @@ export default function Dashboard() {
     setLoading(true);
     try {
       const [dashRes, expensesRes, budgetRes] = await Promise.all([
-        api.get(`/auth/dashboard?context_id=${currentContext.id}`),
-        api.get(`/auth/expenses?context_id=${currentContext.id}`),
-        api.get(`/auth/budgets`, {
+        api.get(`/dashboard?context_id=${currentContext.id}`),
+        api.get(`/expenses?context_id=${currentContext.id}`),
+        api.get(`/budgets`, {
           params: {
             context_id: currentContext.id,
             month: new Date().getMonth() + 1,

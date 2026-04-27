@@ -7,7 +7,8 @@
 
 import { useAppContext } from '@/contexts/AppContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { Search, Bell, Menu, User as UserIcon, Keyboard } from 'lucide-react';
+import { Search, Bell, Menu, User as UserIcon, Keyboard, Sparkles } from 'lucide-react';
+import Link from 'next/link';
 
 export default function Navbar() {
   const { currentContext } = useAppContext();
@@ -51,9 +52,13 @@ export default function Navbar() {
             <div className="flex flex-col items-end">
               <span className="text-sm font-bold text-slate-900 tracking-tight">{user?.name}</span>
               {user?.is_premium ? (
-                <span className="text-[9px] bg-emerald-100 text-[#636B2F] px-2 py-0.5 rounded-full font-black uppercase tracking-widest shadow-sm shadow-emerald-100">Pro</span>
+                <span className="text-[9px] bg-emerald-100 text-[#636B2F] px-2 py-0.5 rounded-full font-black uppercase tracking-widest shadow-sm shadow-emerald-100 flex items-center gap-1">
+                  <Sparkles size={9} /> Pro
+                </span>
               ) : (
-                <span className="text-[9px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full font-black uppercase tracking-widest">Free</span>
+                <Link href="/pricing" className="text-[9px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full font-black uppercase tracking-widest hover:bg-[#636B2F] hover:text-white transition-all">
+                  Free
+                </Link>
               )}
             </div>
             <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-[#636B2F] to-[#4A5323] flex items-center justify-center text-white font-black border-4 border-white shadow-xl shadow-emerald-100 overflow-hidden text-lg ring-1 ring-slate-100">

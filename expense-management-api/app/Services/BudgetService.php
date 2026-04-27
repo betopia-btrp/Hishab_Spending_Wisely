@@ -75,15 +75,17 @@ class BudgetService
                 : 0;
 
             return [
-                'id'          => $budget->id,
-                'category'    => $budget->category,    // null = overall budget
-                'month'       => $budget->month,
-                'year'        => $budget->year,
-                'budget'      => $budgetAmount,
-                'spent'       => $spent,
-                'remaining'   => round($budgetAmount - $spent, 2),
-                'percentage'  => $percentage,           // FR-BU-03
-                'status'      => $this->getBudgetStatus($percentage),
+                'id'            => $budget->id,
+                'category'      => $budget->category,
+                'category_id'   => $budget->category_id,
+                'month'         => $budget->month,
+                'year'          => $budget->year,
+                'amount'        => $budgetAmount,
+                'spent_amount'  => $spent,
+                'remaining'     => round($budgetAmount - $spent, 2),
+                'percentage'    => $percentage,
+                'percentage_used' => $percentage,
+                'status'        => $this->getBudgetStatus($percentage),
             ];
         })->toArray();
     }

@@ -15,6 +15,10 @@ return Application::configure(basePath: dirname(__DIR__))
     $middleware->api(prepend: [
         \App\Http\Middleware\ForceJson::class,
     ]);
+
+    $middleware->validateCsrfTokens(except: [
+        'api/subscriptions/webhook',
+    ]);
 })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
