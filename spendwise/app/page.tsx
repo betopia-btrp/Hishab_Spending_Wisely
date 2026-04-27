@@ -35,8 +35,8 @@ function AppContent() {
   const { isAuthenticated, loading } = useAuth();
   const { currentContext, loading: contextLoading } = useAppContext();
   const [showLogin, setShowLogin] = useState(false);
-  const [showBudgetPopup, setShowBudgetPopup] = useState(false);
   const [inviteInfo, setInviteInfo] = useState<{ name: string; code: string; id: string } | null>(null);
+  const [showBudgetPopup, setShowBudgetPopup] = useState(false);
   const [pendingBudgetContextId, setPendingBudgetContextId] = useState<string | null>(null);
   
   const router = useRouter();
@@ -52,43 +52,42 @@ function AppContent() {
   useEffect(() => {
     if (!isAuthenticated) return;
     
-    // Check pending context first (from new group creation or join)
     if (pendingBudgetContextId) {
       const hasSetBudget = localStorage.getItem(`budget_set_${pendingBudgetContextId}`);
       if (!hasSetBudget) {
         setShowBudgetPopup(true);
       }
-      // Clear the pending context after checking
-      setPendingBudgetContextId(null);
       return;
     }
     
-    // Fall back to current context
     if (currentContext) {
       const hasSetBudget = localStorage.getItem(`budget_set_${currentContext.id}`);
       if (!hasSetBudget) {
         setShowBudgetPopup(true);
       }
     }
-  }, [isAuthenticated, currentContext, pendingBudgetContextId]);
-
-  const handleCloseBudget = () => {
-    setShowBudgetPopup(false);
-  };
+  }, [isAuthenticated, pendingBudgetContextId, currentContext]);
 
   const handleBudgetSuccess = (contextId: string) => {
     localStorage.setItem(`budget_set_${contextId}`, 'true');
     window.dispatchEvent(new Event('budget-updated'));
+    setShowBudgetPopup(false);
+    setPendingBudgetContextId(null);
   };
 
-const handleContextCreationComplete = (info?: { name: string; code: string; id: string }) => {
-    // If info has valid id and name, it's a new group - show invite modal
+  const handleCloseBudget = () => {
+    setShowBudgetPopup(false);
+    const contextId = pendingBudgetContextId || currentContext?.id;
+    if (contextId) {
+      localStorage.setItem(`budget_set_${contextId}`, 'skipped');
+    }
+    setPendingBudgetContextId(null);
+  };
+
+  const handleContextCreationComplete = (info?: { name: string; code: string; id: string }) => {
     if (info?.id && info.name && info.code) {
       setInviteInfo(info);
-    } else if (info?.id) {
-      // Joined group - set pending context for budget check
       setPendingBudgetContextId(info.id);
-      handleTabChange('dashboard');
     } else {
       handleTabChange('dashboard');
     }
@@ -98,7 +97,6 @@ const handleContextCreationComplete = (info?: { name: string; code: string; id: 
     const contextId = inviteInfo?.id;
     setInviteInfo(null);
     handleTabChange('dashboard');
-    // After dismissing invite modal, show budget popup for the new group
     if (contextId) {
       setPendingBudgetContextId(contextId);
     }
@@ -135,12 +133,7 @@ const handleContextCreationComplete = (info?: { name: string; code: string; id: 
     }
   };
 
-  const getBudgetContextId = () => {
-    if (pendingBudgetContextId) {
-      return pendingBudgetContextId;
-    }
-    return currentContext?.id;
-  };
+  const getBudgetContextId = () => pendingBudgetContextId || currentContext?.id;
 
   return (
     <Layout activeTab={activeTab} onTabChange={handleTabChange}>

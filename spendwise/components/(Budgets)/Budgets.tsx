@@ -169,8 +169,9 @@ export default function Budgets() {
   const openForm = (budget?: BudgetCard) => {
     if (budget) {
       setEditingBudget(budget);
+      const amt = budget.budget ?? budget.amount;
       setFormData({
-        amount: budget.amount.toString(),
+        amount: amt?.toString() ?? '',
         description: budget.description || '',
         category_id: budget.category_id || '',
         month: budget.month,
@@ -195,8 +196,14 @@ export default function Budgets() {
     setFormData({ amount: '', description: '' });
   };
 
-  const totalBudget = budgets.reduce((sum, b) => sum + b.amount, 0);
-  const totalSpent = budgets.reduce((sum, b) => sum + (b.spent_amount || b.spent || 0), 0);
+  const totalBudget = budgets.reduce((sum, b) => {
+    const amt = b.budget ?? b.amount ?? 0;
+    return sum + Number(amt);
+  }, 0);
+  const totalSpent = budgets.reduce((sum, b) => {
+    const spent = b.spent_amount ?? b.spent ?? 0;
+    return sum + Number(spent);
+  }, 0);
   const overallPercentage = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
 
   return (
@@ -284,8 +291,14 @@ export default function Budgets() {
                 <div>
                   <h3 className="text-lg font-black text-slate-900">Base Monthly Budget</h3>
                   <p className="text-xs text-slate-500">
-                    {budgets.filter(b => !b.category_id && !b.description).reduce((sum, b) => sum + b.amount, 0) > 0
-                      ? formatCurrency(budgets.filter(b => !b.category_id && !b.description).reduce((sum, b) => sum + b.amount, 0))
+{budgets.filter(b => !b.category_id && !b.description).reduce((sum, b) => {
+                        const amt = b.budget ?? b.amount ?? 0;
+                        return sum + Number(amt);
+                      }, 0) > 0
+                        ? formatCurrency(budgets.filter(b => !b.category_id && !b.description).reduce((sum, b) => {
+                          const amt = b.budget ?? b.amount ?? 0;
+                          return sum + Number(amt);
+                        }, 0))
                       : 'Not set'}
                   </p>
                 </div>
@@ -326,7 +339,8 @@ export default function Budgets() {
                             {budget.description || budget.category?.name || 'Budget'}
                           </p>
                           <p className="text-xs text-slate-500">
-                            {formatCurrency(budget.amount)}
+                            const amt = budget.budget ?? budget.amount;
+                          return formatCurrency(Number(amt) || 0);
                           </p>
                         </div>
                       </div>
