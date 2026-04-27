@@ -94,4 +94,23 @@ Route::middleware('auth:api')->prefix('auth')->group(function () {
         Route::post('/{context}/revoke-invite', [ContextController::class, 'revokeInviteCode']);
     });
 
+        Route::prefix('reminders')->group(function () {
+        Route::get('/',                     [ReminderController::class, 'index']);    // FR-RE-06
+        Route::post('/',                    [ReminderController::class, 'store']);    // FR-RE-01
+        Route::get('/{reminder}',           [ReminderController::class, 'show']);
+        Route::put('/{reminder}',           [ReminderController::class, 'update']);
+        Route::patch('/{reminder}/complete',[ReminderController::class, 'complete']); // FR-RE-05
+        Route::delete('/{reminder}',        [ReminderController::class, 'destroy']);
+    });
+
+    // ── In-app Notifications ──────────────────────────────────────────────
+    Route::prefix('notifications')->group(function () {
+        Route::get('/',                         [NotificationController::class, 'index']);
+        Route::get('/unread-count',             [NotificationController::class, 'unreadCount']);
+        Route::patch('/{id}/read',              [NotificationController::class, 'markRead']);
+        Route::patch('/read-all',               [NotificationController::class, 'markAllRead']);
+        Route::delete('/{id}',                  [NotificationController::class, 'destroy']);
+    });
+
+
 });
