@@ -36,7 +36,7 @@ export default function EditExpenseModal({ expense, contextId, onClose, onSucces
     const fetchCategories = async () => {
       try {
         console.log('[Categories] Fetching with contextId:', contextId);
-        const res = await api.get(`/auth/categories?context_id=${contextId}`);
+        const res = await api.get(`/categories?context_id=${contextId}`);
         console.log('[Categories] Response:', res.data);
         const data = res.data.data || res.data;
         setCategories(Array.isArray(data) ? data : (data.system || []).concat(data.custom || []));
@@ -53,7 +53,7 @@ export default function EditExpenseModal({ expense, contextId, onClose, onSucces
     setError('');
     setLoading(true);
     try {
-      await api.put(`/auth/expenses/${expense.id}`, {
+      await api.put(`/expenses/${expense.id}`, {
         context_id: contextId,
         amount: Number(amount),
         category_id: categoryId || null,

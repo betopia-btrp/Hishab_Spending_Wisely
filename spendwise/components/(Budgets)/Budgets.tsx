@@ -66,7 +66,7 @@ export default function Budgets() {
     if (!currentContext) return;
     setLoading(true);
     try {
-      const res = await api.get(`/auth/budgets`, {
+      const res = await api.get(`/budgets`, {
         params: {
           context_id: currentContext.id,
           month: currentMonth,
@@ -106,7 +106,7 @@ export default function Budgets() {
   const fetchCategories = async () => {
     if (!currentContext) return;
     try {
-      const res = await api.get(`/auth/categories?context_id=${currentContext.id}`);
+      const res = await api.get(`/categories?context_id=${currentContext.id}`);
       const data = res.data.data || res.data;
       setCategories(Array.isArray(data) ? data : (data.system || []).concat(data.custom || []));
     } catch (err: any) {
@@ -142,9 +142,9 @@ export default function Budgets() {
       };
 
       if (editingBudget) {
-        await api.put(`/auth/budgets/${editingBudget.id}`, { amount: Number(formData.amount) });
+        await api.put(`/budgets/${editingBudget.id}`, { amount: Number(formData.amount) });
       } else {
-        await api.post('/auth/budgets', payload);
+        await api.post('/budgets', payload);
       }
 
       await fetchBudgets();
@@ -159,7 +159,7 @@ export default function Budgets() {
   const handleDelete = async (budget: BudgetCard) => {
     if (!confirm(`Delete${budget.description ? ` "${budget.description}"` : ' this budget'}?`)) return;
     try {
-      await api.delete(`/auth/budgets/${budget.id}`);
+      await api.delete(`/budgets/${budget.id}`);
       await fetchBudgets();
     } catch (err) {
       console.error('Failed to delete budget', err);

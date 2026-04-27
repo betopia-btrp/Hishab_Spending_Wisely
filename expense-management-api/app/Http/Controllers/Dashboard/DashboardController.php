@@ -64,10 +64,22 @@ class DashboardController extends Controller
                 return $carry - $amount;
             }, 0);
 
+        $activeMembers = ContextMember::where('context_id', $contextId)
+            ->where('status', 'active')
+            ->with('user:id,name,email,avatar_url')
+            ->get()
+            ->map(fn($m) => [
+                'id' => $m->id,
+                'user_id' => $m->user_id,
+                'role' => $m->role,
+                'user' => $m->user,
+            ]);
+
         return response()->json([
             'total_spent' => $totalSpent,
             'your_balance' => $balance,
             'member_count' => $memberCount,
+            'active_members' => $activeMembers,
         ]);
     }
 
