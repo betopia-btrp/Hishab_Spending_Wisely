@@ -36,16 +36,17 @@ If you prefer running natively, you need PHP 8.4+, Composer, Node.js 22+, and Po
 ```bash
 # Backend
 cd expense-management-api
-cp .env.example .env              # edit DB_HOST/DB_PORT
+cp .env.example .env              # edit DB_HOST = 127.0.0.1 or localhost /DB_PORT
 composer install
 php artisan key:generate
 php artisan jwt:secret
 php artisan migrate --seed
-php artisan serve                 # port 8000
+php -S localhost:8000 -t public                # port 8000
 
 # Frontend (separate terminal)
+cd Hishab_Spending_Wisely
 cd spendwise
-cp .env.example .env
+cp .env.example .env.local
 npm install
 npm run dev                       # port 4000
 ```
