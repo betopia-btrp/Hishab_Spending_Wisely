@@ -1,13 +1,8 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
 "use client";
 
-import { useEffect, useState } from 'react';
-import { Plus, Search, Filter, MoreVertical, Edit2, Trash2, CheckCircle, Calendar, Tag } from 'lucide-react';
-import { formatCurrency, cn } from '@/lib/utils';
+import { useEffect, useState, Fragment } from 'react';
+import { Plus, Search, Filter, Edit2, Trash2, Calendar, Users, ChevronRight, ChevronDown } from 'lucide-react';
+import { formatCurrency } from '@/lib/utils';
 import api from '@/lib/axios';
 import { useAppContext } from '@/contexts/AppContext';
 import { Expense, Category } from '@/types';
@@ -22,6 +17,7 @@ export default function Expenses() {
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const fetchData = async () => {
     if (!currentContext) return;
@@ -61,6 +57,12 @@ export default function Expenses() {
     }
   };
 
+  const toggleExpand = (id: string) => {
+    setExpandedId(prev => prev === id ? null : id);
+  };
+
+  const hasSplits = (e: Expense) => e.split_type && e.split_type !== 'none' && e.splits && e.splits.length > 0;
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -69,7 +71,7 @@ export default function Expenses() {
           <p className="text-sm text-slate-500 font-medium">Manage and audit all expenses in this context</p>
         </div>
         <button 
-          onClick={() => { console.log('Opening modal'); setShowModal(true); }}
+          onClick={() => { setShowModal(true); }}
           className="bg-[#636B2F] text-white px-6 py-3 rounded-2xl font-extrabold shadow-lg shadow-emerald-200 hover:opacity-90 active:scale-95 transition-all flex items-center justify-center gap-2"
         >
           <Plus size={20} />
@@ -108,62 +110,89 @@ export default function Expenses() {
                 <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Transaction Date</th>
                 <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Note</th>
                 <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Category</th>
-                <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Payer</th>
+                <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Split</th>
                 <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-right">Amount</th>
-                <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Status</th>
                 <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
               {loading ? (
-                <tr><td colSpan={7} className="text-center py-20 text-slate-400 font-bold uppercase tracking-widest text-xs">Syncing with ledger...</td></tr>
+                <tr><td colSpan={6} className="text-center py-20 text-slate-400 font-bold uppercase tracking-widest text-xs">Syncing with ledger...</td></tr>
               ) : filteredExpenses.length === 0 ? (
-                <tr><td colSpan={7} className="text-center py-20 text-slate-400 italic">No transactions found matching your criteria.</td></tr>
+                <tr><td colSpan={6} className="text-center py-20 text-slate-400 italic">No transactions found matching your criteria.</td></tr>
               ) : (
                 filteredExpenses.map((expense) => (
-                  <tr key={expense.id} className="hover:bg-slate-50/50 transition group">
-                    <td className="px-8 py-5 whitespace-nowrap">
-                      <span className="text-sm font-bold text-slate-600">{new Date(expense.expense_date || expense.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-                    </td>
-                    <td className="px-8 py-5">
-                      <span className="text-sm font-extrabold text-slate-900">{expense.note || expense.description || '-'}</span>
-                    </td>
-                    <td className="px-8 py-5">
-                      <div className="inline-flex items-center px-3 py-1 bg-slate-100 rounded-full">
-                        <span className="mr-2 text-xs">{expense.category?.icon || '💰'}</span>
-                        <span className="text-[11px] text-slate-600 font-black uppercase tracking-tight">{expense.category?.name || 'Uncategorized'}</span>
-                      </div>
-                    </td>
-                    <td className="px-8 py-5 whitespace-nowrap">
-                       <div className="flex items-center">
-                          <div className="w-7 h-7 rounded-lg bg-blue-100 text-[10px] flex items-center justify-center font-black text-blue-700 mr-3 uppercase shadow-sm">
-                            {expense.user?.name?.charAt(0) || '?'}
+                  <Fragment key={expense.id}>
+                    <tr
+                      onClick={() => hasSplits(expense) && toggleExpand(expense.id)}
+                      className={`hover:bg-slate-50/50 transition group cursor-pointer ${expandedId === expense.id ? 'bg-slate-50/30' : ''}`}
+                    >
+                      <td className="px-8 py-5 whitespace-nowrap">
+                        <div className="flex items-center gap-2">
+                          {hasSplits(expense) && (
+                            <span className="text-slate-300 shrink-0">
+                              {expandedId === expense.id ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                            </span>
+                          )}
+                          <span className="text-sm font-bold text-slate-600">
+                            {new Date(expense.expense_date || expense.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-8 py-5">
+                        <span className="text-sm font-extrabold text-slate-900">{expense.note || expense.description || '-'}</span>
+                      </td>
+                      <td className="px-8 py-5">
+                        <div className="inline-flex items-center px-3 py-1 bg-slate-100 rounded-full">
+                          <span className="mr-2 text-xs">{expense.category?.icon || '💰'}</span>
+                          <span className="text-[11px] text-slate-600 font-black uppercase tracking-tight">{expense.category?.name || 'Uncategorized'}</span>
+                        </div>
+                      </td>
+                      <td className="px-8 py-5 whitespace-nowrap">
+                        {hasSplits(expense) ? (
+                          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 rounded-full text-[10px] font-bold text-slate-600 uppercase tracking-wider">
+                            <Users size={11} />
+                            {expense.split_type === 'equal' && `Equal`}
+                            {expense.split_type === 'custom' && `Custom`}
+                            {expense.split_type === 'percentage' && `% Split`}
+                            <span className="text-slate-400">({expense.splits?.length || 0})</span>
                           </div>
-                          <span className="text-sm text-slate-600 font-bold">{expense.user?.name || 'Unknown'}</span>
-                       </div>
-                    </td>
-                    <td className="px-8 py-5 text-right whitespace-nowrap">
-                      <span className="text-base font-black text-slate-900">{formatCurrency(expense.amount)}</span>
-                    </td>
-                    <td className="px-8 py-5 whitespace-nowrap">
-                      {expense.is_settled ? (
-                        <span className="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-emerald-100 text-emerald-700 shadow-sm shadow-emerald-50">
-                          <CheckCircle size={12} className="mr-1.5" />
-                          Settled
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-amber-100 text-amber-700 shadow-sm shadow-amber-50">
-                          Pending
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-8 py-5 text-right">
-                      <div className="flex items-center justify-end space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button onClick={() => setEditingExpense(expense)} className="p-2 hover:bg-slate-200 rounded-xl text-slate-400 hover:text-slate-700 transition" title="Edit"><Edit2 size={14} /></button>
-                        <button onClick={() => handleDelete(expense)} className="p-2 hover:bg-rose-50 rounded-xl text-slate-400 hover:text-rose-600 transition" title="Delete"><Trash2 size={14} /></button>
-                      </div>
-                    </td>
-                  </tr>
+                        ) : (
+                          <span className="text-[10px] text-slate-300 font-bold uppercase tracking-wider">—</span>
+                        )}
+                      </td>
+                      <td className="px-8 py-5 text-right whitespace-nowrap">
+                        <span className="text-base font-black text-slate-900">{formatCurrency(expense.amount)}</span>
+                      </td>
+                      <td className="px-8 py-5 text-right">
+                        <div className="flex items-center justify-end space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button onClick={(e) => { e.stopPropagation(); setEditingExpense(expense); }} className="p-2 hover:bg-slate-200 rounded-xl text-slate-400 hover:text-slate-700 transition" title="Edit"><Edit2 size={14} /></button>
+                          <button onClick={(e) => { e.stopPropagation(); handleDelete(expense); }} className="p-2 hover:bg-rose-50 rounded-xl text-slate-400 hover:text-rose-600 transition" title="Delete"><Trash2 size={14} /></button>
+                        </div>
+                      </td>
+                    </tr>
+                    {expandedId === expense.id && hasSplits(expense) && expense.splits!.map((split) => (
+                      <tr key={split.id || split.user_id} className="bg-slate-50/50 border-t-0">
+                        <td colSpan={3} className="px-8 py-3 pl-16">
+                          <div className="flex items-center gap-3">
+                            <div className="w-6 h-6 rounded-full bg-slate-200 text-[9px] flex items-center justify-center font-black text-slate-500 uppercase">
+                              {split.user?.name?.charAt(0) || '?'}
+                            </div>
+                            <span className="text-sm font-semibold text-slate-600">{split.user?.name || 'Unknown'}</span>
+                          </div>
+                        </td>
+                        <td className="px-8 py-3 whitespace-nowrap">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                            {expense.split_type === 'percentage' && split.percentage != null ? `${split.percentage}%` : 'share'}
+                          </span>
+                        </td>
+                        <td className="px-8 py-3 text-right whitespace-nowrap">
+                          <span className="text-sm font-bold text-slate-700">{formatCurrency(split.share_amount)}</span>
+                        </td>
+                        <td colSpan={1}></td>
+                      </tr>
+                    ))}
+                  </Fragment>
                 ))
               )}
             </tbody>

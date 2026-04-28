@@ -1,15 +1,12 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'motion/react';
-import { Receipt, X, Check, Loader2 } from 'lucide-react';
+import { Receipt, X, Check, Loader2, Users } from 'lucide-react';
 import api from '@/lib/axios';
-import { Expense, Category } from '@/types';
+import { formatCurrency } from '@/lib/utils';
+import { Expense, Category, ContextMember, ContextType } from '@/types';
+import { useAppContext } from '@/contexts/AppContext';
 
 interface EditExpenseModalProps {
   expense: Expense;
@@ -18,56 +15,194 @@ interface EditExpenseModalProps {
   onSuccess: () => void;
 }
 
+type SplitType = 'none' | 'equal' | 'custom' | 'percentage';
+
+interface MemberSplit {
+  user_id: string;
+  name: string;
+  share_amount: string;
+  percentage: string;
+}
+
 export default function EditExpenseModal({ expense, contextId, onClose, onSuccess }: EditExpenseModalProps) {
-  const [description, setDescription] = useState('');
+  const { currentContext } = useAppContext();
   const [amount, setAmount] = useState(expense.amount.toString());
   const [categoryId, setCategoryId] = useState(expense.category_id || '');
   const [note, setNote] = useState(expense.note || '');
-  const [date, setDate] = useState(expense.expense_date 
-    ? new Date(expense.expense_date).toISOString().split('T')[0]
-    : new Date().toISOString().split('T')[0]
+  const [date, setDate] = useState(
+    expense.expense_date
+      ? new Date(expense.expense_date).toISOString().split('T')[0]
+      : new Date().toISOString().split('T')[0]
   );
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
+  const [members, setMembers] = useState<ContextMember[]>([]);
+  const [membersLoading, setMembersLoading] = useState(false);
+
+  const isGroup = currentContext?.type === ContextType.GROUP;
+  const [splitType, setSplitType] = useState<SplitType>(expense.split_type as SplitType || (isGroup ? 'equal' : 'none'));
+  const [memberSplits, setMemberSplits] = useState<MemberSplit[]>([]);
+
+  useEffect(() => {
+    if (!isGroup) return;
+    const fetchMembers = async () => {
+      setMembersLoading(true);
+      try {
+        const res = await api.get(`/contexts/${contextId}`);
+        const ctx = res.data;
+        if (ctx.members && Array.isArray(ctx.members)) {
+          setMembers(ctx.members);
+        }
+      } catch (err: any) {
+        console.error('[Members] Failed to fetch:', err);
+      } finally {
+        setMembersLoading(false);
+      }
+    };
+    fetchMembers();
+  }, [contextId, isGroup]);
+
+  useEffect(() => {
+    if (!isGroup || members.length === 0) return;
+
+    const existingSplits = expense.splits || [];
+    const existingMap = new Map(existingSplits.map((s) => [s.user_id, s]));
+
+    const parsed = parseFloat(amount);
+    const hasAllMembers = members.every((m) => existingMap.has(m.user_id));
+
+    if (hasAllMembers) {
+      setMemberSplits(
+        members.map((m) => {
+          const existing = existingMap.get(m.user_id);
+          const pct = existing
+            ? ((existing.share_amount / parsed) * 100).toFixed(1)
+            : (100 / members.length).toFixed(1);
+          return {
+            user_id: m.user_id,
+            name: m.user?.name || 'Unknown',
+            share_amount: existing ? existing.share_amount.toFixed(2) : (parsed / members.length).toFixed(2),
+            percentage: pct,
+          };
+        })
+      );
+    } else {
+      const equalShare = parsed / members.length;
+      setMemberSplits(
+        members.map((m) => ({
+          user_id: m.user_id,
+          name: m.user?.name || 'Unknown',
+          share_amount: equalShare.toFixed(2),
+          percentage: (100 / members.length).toFixed(1),
+        }))
+      );
+    }
+  }, [members, isGroup]);
+
+  useEffect(() => {
+    if (!isGroup || members.length === 0) return;
+    const parsed = parseFloat(amount);
+    if (isNaN(parsed) || parsed <= 0) return;
+    if (splitType === 'equal') {
+      const equalShare = parsed / members.length;
+      setMemberSplits((prev) =>
+        prev.map((s) => ({ ...s, share_amount: equalShare.toFixed(2) }))
+      );
+    }
+  }, [amount, members.length, splitType, isGroup]);
 
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        console.log('[Categories] Fetching with contextId:', contextId);
         const res = await api.get(`/categories?context_id=${contextId}`);
-        console.log('[Categories] Response:', res.data);
         const data = res.data.data || res.data;
         setCategories(Array.isArray(data) ? data : (data.system || []).concat(data.custom || []));
       } catch (err: any) {
-        console.error('[Categories] Error:', err.response?.status, err.response?.data || err.message);
         setCategories([]);
       }
     };
     fetchCategories();
   }, [contextId]);
 
+  const updateCustomAmount = (userId: string, value: string) => {
+    setMemberSplits((prev) =>
+      prev.map((s) => (s.user_id === userId ? { ...s, share_amount: value } : s))
+    );
+  };
+
+  const updatePercentage = (userId: string, value: string) => {
+    setMemberSplits((prev) =>
+      prev.map((s) => (s.user_id === userId ? { ...s, percentage: value } : s))
+    );
+  };
+
+  const validateSplits = (): string | null => {
+    const totalAmount = parseFloat(amount);
+    if (isNaN(totalAmount) || totalAmount <= 0) return 'Amount is required.';
+
+    if (splitType === 'custom') {
+      const totalSplit = memberSplits.reduce(
+        (sum, s) => sum + (parseFloat(s.share_amount) || 0), 0
+      );
+      if (Math.abs(totalSplit - totalAmount) > 0.01) {
+        return `Split amounts must sum to ${formatCurrency(totalAmount)}. Currently: ${formatCurrency(totalSplit)}.`;
+      }
+    }
+
+    if (splitType === 'percentage') {
+      const totalPct = memberSplits.reduce(
+        (sum, s) => sum + (parseFloat(s.percentage) || 0), 0
+      );
+      if (Math.abs(totalPct - 100) > 0.1) {
+        return `Percentages must sum to 100%. Currently: ${totalPct.toFixed(1)}%.`;
+      }
+    }
+
+    return null;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    const validationError = validateSplits();
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
     setLoading(true);
     try {
-      await api.put(`/expenses/${expense.id}`, {
+      const payload: any = {
         context_id: contextId,
         amount: Number(amount),
         category_id: categoryId || null,
         note: note || null,
         expense_date: date,
-        split_type: 'equal',
-      });
+        split_type: splitType,
+      };
+
+      if (splitType === 'custom') {
+        payload.splits = memberSplits.map((s) => ({
+          user_id: s.user_id,
+          share_amount: parseFloat(s.share_amount),
+        }));
+      } else if (splitType === 'percentage') {
+        payload.splits = memberSplits.map((s) => ({
+          user_id: s.user_id,
+          percentage: parseFloat(s.percentage),
+        }));
+      }
+
+      await api.put(`/expenses/${expense.id}`, payload);
       setSuccess(true);
       setTimeout(() => {
         onSuccess();
         onClose();
       }, 1000);
     } catch (err: any) {
-      console.error('[Expense] Full error:', err.response?.data, err.message);
       setError(err.response?.data?.message || JSON.stringify(err.response?.data?.errors) || 'Failed to update expense');
     } finally {
       setLoading(false);
@@ -76,7 +211,7 @@ export default function EditExpenseModal({ expense, contextId, onClose, onSucces
 
   return (
     <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         className="bg-white rounded-[2.5rem] shadow-2xl max-w-lg w-full overflow-hidden border border-slate-100"
@@ -86,8 +221,8 @@ export default function EditExpenseModal({ expense, contextId, onClose, onSucces
             <div className="w-14 h-14 bg-amber-50 rounded-2xl flex items-center justify-center text-amber-600">
               <Receipt size={28} />
             </div>
-            <button 
-              onClick={onClose} 
+            <button
+              onClick={onClose}
               className="p-2 hover:bg-slate-50 rounded-xl transition text-slate-400 font-bold"
             >
               ✕
@@ -150,7 +285,7 @@ export default function EditExpenseModal({ expense, contextId, onClose, onSucces
                   ))}
                 </select>
               </div>
-              
+
               <div className="col-span-2">
                 <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-2">Note</label>
                 <textarea
@@ -163,12 +298,112 @@ export default function EditExpenseModal({ expense, contextId, onClose, onSucces
               </div>
             </div>
 
+            {isGroup && (
+              <div className="border-t border-slate-100 pt-5">
+                <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-3">
+                  <Users size={14} className="inline mr-1.5 -mt-0.5" />
+                  Split Type
+                </label>
+
+                <div className="flex gap-2 mb-4">
+                  {(['equal', 'custom', 'percentage', 'none'] as SplitType[]).map((type) => (
+                    <button
+                      key={type}
+                      type="button"
+                      onClick={() => setSplitType(type)}
+                      className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${
+                        splitType === type
+                          ? 'bg-amber-500 text-white shadow-md'
+                          : 'bg-slate-50 text-slate-500 hover:bg-slate-100 border border-slate-200'
+                      }`}
+                    >
+                      {type === 'none' ? 'No Split' : type}
+                    </button>
+                  ))}
+                </div>
+
+                {membersLoading && (
+                  <div className="flex items-center justify-center py-4">
+                    <Loader2 size={18} className="animate-spin text-slate-400" />
+                    <span className="ml-2 text-xs text-slate-400 font-bold">Loading members...</span>
+                  </div>
+                )}
+
+                {!membersLoading && splitType !== 'none' && memberSplits.length > 0 && (
+                  <div className="bg-slate-50 rounded-2xl p-4 space-y-3">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                      {splitType === 'equal' && 'Splitting equally among members'}
+                      {splitType === 'custom' && 'Enter each member\'s share'}
+                      {splitType === 'percentage' && 'Enter each member\'s percentage'}
+                    </p>
+                    {memberSplits.map((s) => (
+                      <div key={s.user_id} className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-600 text-xs font-black shrink-0">
+                          {s.name[0].toUpperCase()}
+                        </div>
+                        <span className="text-sm font-bold text-slate-700 flex-1 truncate">{s.name}</span>
+                        {splitType === 'custom' && (
+                          <div className="relative w-28">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">৳</span>
+                            <input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              value={s.share_amount}
+                              onChange={(e) => updateCustomAmount(s.user_id, e.target.value)}
+                              className="w-full pl-7 pr-3 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-amber-500/10 focus:border-amber-500 transition-all"
+                            />
+                          </div>
+                        )}
+                        {splitType === 'percentage' && (
+                          <div className="flex items-center gap-2">
+                            <div className="relative w-20">
+                              <input
+                                type="number"
+                                step="0.1"
+                                min="0"
+                                max="100"
+                                value={s.percentage}
+                                onChange={(e) => updatePercentage(s.user_id, e.target.value)}
+                                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-amber-500/10 focus:border-amber-500 transition-all text-right"
+                              />
+                              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">%</span>
+                            </div>
+                            <span className="text-xs text-slate-400 font-bold w-16 text-right">
+                              {formatCurrency((parseFloat(s.percentage) || 0) / 100 * (parseFloat(amount) || 0))}
+                            </span>
+                          </div>
+                        )}
+                        {splitType === 'equal' && (
+                          <span className="text-sm font-bold text-slate-600">{formatCurrency(parseFloat(s.share_amount))}</span>
+                        )}
+                      </div>
+                    ))}
+                    {splitType === 'custom' && (
+                      <div className="flex justify-end pt-2 border-t border-slate-200">
+                        <span className="text-xs font-bold text-slate-500">
+                          Total: {formatCurrency(memberSplits.reduce((sum, s) => sum + (parseFloat(s.share_amount) || 0), 0))} / {formatCurrency(parseFloat(amount) || 0)}
+                        </span>
+                      </div>
+                    )}
+                    {splitType === 'percentage' && (
+                      <div className="flex justify-end pt-2 border-t border-slate-200">
+                        <span className="text-xs font-bold text-slate-500">
+                          Total: {memberSplits.reduce((sum, s) => sum + (parseFloat(s.percentage) || 0), 0).toFixed(1)}%
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
             <button
               type="submit"
               disabled={loading || success}
               className={`w-full py-4 rounded-2xl font-black text-white shadow-xl transition-all flex items-center justify-center gap-2 ${
-                success 
-                  ? 'bg-emerald-500' 
+                success
+                  ? 'bg-emerald-500'
                   : 'bg-amber-500 hover:opacity-90 shadow-amber-900/10'
               }`}
             >
