@@ -10,6 +10,7 @@ use App\Http\Controllers\Context\ContextController;
 use App\Http\Controllers\Dashboard\DashboardController;
 use App\Http\Controllers\Expense\CategoryController;
 use App\Http\Controllers\Expense\ExpenseController;
+use App\Http\Controllers\Reminder\ReminderController;
 use App\Http\Controllers\SubscriptionController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Notification\NotificationController;
@@ -112,6 +113,15 @@ Route::middleware("auth:api")->group(function () {
             "markAllAsRead",
         ]);
         Route::delete("/{id}", [NotificationController::class, "destroy"]);
+    });
+
+    Route::prefix('reminders')->group(function () {
+        Route::get('/',                     [ReminderController::class, 'index']);
+        Route::post('/',                    [ReminderController::class, 'store']);
+        Route::get('/{reminder}',           [ReminderController::class, 'show']);
+        Route::put('/{reminder}',           [ReminderController::class, 'update']);
+        Route::patch('/{reminder}/complete',[ReminderController::class, 'complete']);
+        Route::delete('/{reminder}',        [ReminderController::class, 'destroy']);
     });
 
     Route::prefix("contexts")->group(function () {
