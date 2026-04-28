@@ -1,0 +1,62 @@
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: spendwise-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: spendwise
+      POSTGRES_USER: spendwise
+      POSTGRES_PASSWORD: spendwise
+    ports:
+      - "5435:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U spendwise"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: ./expense-management-api
+      dockerfile: Dockerfile
+    container_name: spendwise-api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_DATABASE: spendwise
+      DB_USERNAME: spendwise
+      DB_PASSWORD: spendwise
+    volumes:
+      - ./expense-management-api:/app
+      - api_vendor:/app/vendor
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    build:
+      context: ./spendwise
+      dockerfile: Dockerfile
+    container_name: spendwise-web
+    restart: unless-stopped
+    ports:
+      - "4000:4000"
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000/api
+    volumes:
+      - ./spendwise:/app
+      - web_node_modules:/app/node_modules
+      - web_next:/app/.next
+    depends_on:
+      - api
+
+volumes:
+  postgres_data:
+  api_vendor:
+  web_node_modules:
+  web_next:
