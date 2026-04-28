@@ -40,8 +40,8 @@ function AppContent() {
   const [pendingBudgetContextId, setPendingBudgetContextId] = useState<string | null>(null);
   const [budgetPopupMode, setBudgetPopupMode] = useState<'create' | 'update'>('create');
   const [editingBudgetId, setEditingBudgetId] = useState<string | null>(null);
-  const lastCheckedContextId = useRef<string | null>(null);
-  
+  const checkedContextIds = useRef<Set<string>>(new Set());
+
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -52,32 +52,38 @@ function AppContent() {
     router.push(`${pathname}?tab=${tab}`);
   }, [router, pathname]);
 
+  // Show budget modal when:
+  //   1. User just created a group (pendingBudgetContextId is set)
+  //   2. User just logged in and a context is loaded for the first time
   useEffect(() => {
     if (!isAuthenticated) {
-      lastCheckedContextId.current = null;
+      checkedContextIds.current.clear();
       return;
     }
 
-    // Handle pending budget (new group creation)
+    // Path A: new group creation — show budget modal for the new group
     if (pendingBudgetContextId) {
-      const hasSetBudget = localStorage.getItem(`budget_set_${pendingBudgetContextId}`);
-      if (!hasSetBudget) {
-        setBudgetPopupMode('create');
-        setShowBudgetPopup(true);
+      if (!checkedContextIds.current.has(pendingBudgetContextId)) {
+        checkedContextIds.current.add(pendingBudgetContextId);
+        const hasSetBudget = localStorage.getItem(`budget_set_${pendingBudgetContextId}`);
+        if (!hasSetBudget) {
+          setBudgetPopupMode('create');
+          setShowBudgetPopup(true);
+        }
       }
       return;
     }
 
-    // Only show on first login when context becomes available (not on navigation)
-    if (currentContext && !lastCheckedContextId.current) {
-      lastCheckedContextId.current = currentContext.id;
+    // Path B: first time we see this context — check if budget needs prompting
+    if (currentContext && !checkedContextIds.current.has(currentContext.id)) {
+      checkedContextIds.current.add(currentContext.id);
       const hasSetBudget = localStorage.getItem(`budget_set_${currentContext.id}`);
       if (!hasSetBudget) {
         setBudgetPopupMode('create');
         setShowBudgetPopup(true);
       }
     }
-  }, [isAuthenticated, pendingBudgetContextId, currentContext]);
+  }, [isAuthenticated, pendingBudgetContextId, currentContext, contextLoading]);
 
   const handleBudgetSuccess = (contextId: string) => {
     localStorage.setItem(`budget_set_${contextId}`, 'true');

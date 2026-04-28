@@ -55,7 +55,7 @@ export interface Expense {
   category_id: string;
   context_id: string;
   user_id: string;
-  split_type: 'equal' | 'custom' | 'percentage';
+  split_type: 'none' | 'equal' | 'custom' | 'percentage';
   is_settled: boolean;
   created_at?: string;
   updated_at?: string;
@@ -68,7 +68,8 @@ export interface ExpenseSplit {
   id: string;
   expense_id: string;
   user_id: string;
-  amount: number;
+  share_amount: number;
+  percentage?: number;
   user?: User;
 }
 
