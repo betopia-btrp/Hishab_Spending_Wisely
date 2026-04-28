@@ -5,7 +5,7 @@
 
 "use client";
 
-import { Suspense, useState, useEffect, useCallback } from 'react';
+import { Suspense, useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAppContext } from '@/contexts/AppContext';
@@ -38,6 +38,9 @@ function AppContent() {
   const [inviteInfo, setInviteInfo] = useState<{ name: string; code: string; id: string } | null>(null);
   const [showBudgetPopup, setShowBudgetPopup] = useState(false);
   const [pendingBudgetContextId, setPendingBudgetContextId] = useState<string | null>(null);
+  const [budgetPopupMode, setBudgetPopupMode] = useState<'create' | 'update'>('create');
+  const [editingBudgetId, setEditingBudgetId] = useState<string | null>(null);
+  const lastCheckedContextId = useRef<string | null>(null);
   
   const router = useRouter();
   const pathname = usePathname();
@@ -50,19 +53,27 @@ function AppContent() {
   }, [router, pathname]);
 
   useEffect(() => {
-    if (!isAuthenticated) return;
-    
+    if (!isAuthenticated) {
+      lastCheckedContextId.current = null;
+      return;
+    }
+
+    // Handle pending budget (new group creation)
     if (pendingBudgetContextId) {
       const hasSetBudget = localStorage.getItem(`budget_set_${pendingBudgetContextId}`);
       if (!hasSetBudget) {
+        setBudgetPopupMode('create');
         setShowBudgetPopup(true);
       }
       return;
     }
-    
-    if (currentContext) {
+
+    // Only show on first login when context becomes available (not on navigation)
+    if (currentContext && !lastCheckedContextId.current) {
+      lastCheckedContextId.current = currentContext.id;
       const hasSetBudget = localStorage.getItem(`budget_set_${currentContext.id}`);
       if (!hasSetBudget) {
+        setBudgetPopupMode('create');
         setShowBudgetPopup(true);
       }
     }
@@ -151,6 +162,7 @@ function AppContent() {
       {showBudgetPopup && getBudgetContextId() && (
         <BudgetModal 
           contextId={getBudgetContextId()!} 
+          mode={budgetPopupMode}
           onClose={handleCloseBudget}
           onSuccess={() => handleBudgetSuccess(getBudgetContextId()!)}
         />

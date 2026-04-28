@@ -7,55 +7,56 @@ import api from "@/lib/axios";
 
 interface BudgetModalProps {
   contextId: string;
+  mode?: 'create' | 'update';
   onClose: () => void;
+  onSuccess?: () => void;
 }
 
-export default function BudgetModal({ contextId, onClose }: BudgetModalProps) {
+export default function BudgetModal({ contextId, mode = 'create', onClose, onSuccess }: BudgetModalProps) {
   const [amount, setAmount] = useState("");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [existingBudget, setExistingBudget] = useState<any>(null);
   const [showConfirmUpdate, setShowConfirmUpdate] = useState(false);
-  const [initialCheckLoading, setInitialCheckLoading] = useState(true);
+  const [initialCheckLoading, setInitialCheckLoading] = useState(false);
 
   useEffect(() => {
-    const checkExistingBudget = async () => {
-      try {
-        const month = new Date().getMonth() + 1;
-        const year = new Date().getFullYear();
-        const res = await api.get(`/budgets`, {
-          params: {
-            context_id: contextId,
-            month: month,
-            year: year,
-          },
-        });
-        // Normalize — backend may return array directly OR wrapped in .budgets/.data
-        const budgetList = Array.isArray(res.data)
-          ? res.data
-          : (res.data?.budgets ?? res.data?.data ?? []);
-        if (budgetList.length > 0) {
-          const budget = budgetList[0];
-          if (!budget.category_id && budget) {
-            const amt = budget.budget ?? budget.amount;
-            if (amt != null && !isNaN(Number(amt))) {
-              setExistingBudget(budget);
-              setAmount(String(amt));
-              setShowConfirmUpdate(true);
+    if (mode === 'update') {
+      const checkExistingBudget = async () => {
+        try {
+          setInitialCheckLoading(true);
+          const month = new Date().getMonth() + 1;
+          const year = new Date().getFullYear();
+          const res = await api.get(`/budgets`, {
+            params: {
+              context_id: contextId,
+              month: month,
+              year: year,
+            },
+          });
+          const budgetList = Array.isArray(res.data)
+            ? res.data
+            : (res.data?.budgets ?? res.data?.data ?? []);
+          if (budgetList.length > 0) {
+            const budget = budgetList[0];
+            if (!budget.category_id && budget) {
+              const amt = budget.budget ?? budget.amount;
+              if (amt != null && !isNaN(Number(amt))) {
+                setExistingBudget(budget);
+                setAmount(String(amt));
+                setShowConfirmUpdate(true);
+              }
             }
           }
+        } catch (error: any) {
+          console.error("Failed to check budget", error.response?.data || error.message);
+        } finally {
+          setInitialCheckLoading(false);
         }
-      } catch (error: any) {
-        console.error(
-          "Failed to check budget",
-          error.response?.data || error.message,
-        );
-      } finally {
-        setInitialCheckLoading(false);
-      }
-    };
-    checkExistingBudget();
-  }, [contextId]);
+      };
+      checkExistingBudget();
+    }
+  }, [contextId, mode]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -77,7 +78,11 @@ export default function BudgetModal({ contextId, onClose }: BudgetModalProps) {
       // Tell other components budget was updated
       window.dispatchEvent(new CustomEvent("budget-updated"));
       setTimeout(() => {
-        onClose();
+        if (onSuccess) {
+          onSuccess();
+        } else {
+          onClose();
+        }
       }, 1500);
     } catch (error: any) {
       console.error(
