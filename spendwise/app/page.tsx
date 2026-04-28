@@ -5,7 +5,7 @@
 
 "use client";
 
-import { Suspense, useState, useEffect, useCallback } from 'react';
+import { Suspense, useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAppContext } from '@/contexts/AppContext';
@@ -38,7 +38,10 @@ function AppContent() {
   const [inviteInfo, setInviteInfo] = useState<{ name: string; code: string; id: string } | null>(null);
   const [showBudgetPopup, setShowBudgetPopup] = useState(false);
   const [pendingBudgetContextId, setPendingBudgetContextId] = useState<string | null>(null);
-  
+  const [budgetPopupMode, setBudgetPopupMode] = useState<'create' | 'update'>('create');
+  const [editingBudgetId, setEditingBudgetId] = useState<string | null>(null);
+  const checkedContextIds = useRef<Set<string>>(new Set());
+
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -49,24 +52,38 @@ function AppContent() {
     router.push(`${pathname}?tab=${tab}`);
   }, [router, pathname]);
 
+  // Show budget modal when:
+  //   1. User just created a group (pendingBudgetContextId is set)
+  //   2. User just logged in and a context is loaded for the first time
   useEffect(() => {
-    if (!isAuthenticated) return;
-    
+    if (!isAuthenticated) {
+      checkedContextIds.current.clear();
+      return;
+    }
+
+    // Path A: new group creation — show budget modal for the new group
     if (pendingBudgetContextId) {
-      const hasSetBudget = localStorage.getItem(`budget_set_${pendingBudgetContextId}`);
-      if (!hasSetBudget) {
-        setShowBudgetPopup(true);
+      if (!checkedContextIds.current.has(pendingBudgetContextId)) {
+        checkedContextIds.current.add(pendingBudgetContextId);
+        const hasSetBudget = localStorage.getItem(`budget_set_${pendingBudgetContextId}`);
+        if (!hasSetBudget) {
+          setBudgetPopupMode('create');
+          setShowBudgetPopup(true);
+        }
       }
       return;
     }
-    
-    if (currentContext) {
+
+    // Path B: first time we see this context — check if budget needs prompting
+    if (currentContext && !checkedContextIds.current.has(currentContext.id)) {
+      checkedContextIds.current.add(currentContext.id);
       const hasSetBudget = localStorage.getItem(`budget_set_${currentContext.id}`);
       if (!hasSetBudget) {
+        setBudgetPopupMode('create');
         setShowBudgetPopup(true);
       }
     }
-  }, [isAuthenticated, pendingBudgetContextId, currentContext]);
+  }, [isAuthenticated, pendingBudgetContextId, currentContext, contextLoading]);
 
   const handleBudgetSuccess = (contextId: string) => {
     localStorage.setItem(`budget_set_${contextId}`, 'true');
@@ -151,6 +168,7 @@ function AppContent() {
       {showBudgetPopup && getBudgetContextId() && (
         <BudgetModal 
           contextId={getBudgetContextId()!} 
+          mode={budgetPopupMode}
           onClose={handleCloseBudget}
           onSuccess={() => handleBudgetSuccess(getBudgetContextId()!)}
         />

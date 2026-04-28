@@ -339,8 +339,7 @@ export default function Budgets() {
                             {budget.description || budget.category?.name || 'Budget'}
                           </p>
                           <p className="text-xs text-slate-500">
-                            const amt = budget.budget ?? budget.amount;
-                          return formatCurrency(Number(amt) || 0);
+                            {formatCurrency(budget.budget ?? budget.amount ?? 0)}
                           </p>
                         </div>
                       </div>

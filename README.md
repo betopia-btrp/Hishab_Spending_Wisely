@@ -60,9 +60,10 @@ docker compose logs -f            # Follow all logs
 docker compose exec api bash      # Shell into API container
 docker compose exec api php artisan tinker   # Laravel tinker
 
-make fresh    # Nuke DB and re-seed
+make fresh    # Nuke DB, re-seed, sync Stripe prices
 make shell    # Bash into API container
 make seed     # Re-seed database
+make sync     # Sync Stripe prices
 make logs     # Follow all logs
 make restart  # Restart API
 ```
@@ -70,5 +71,5 @@ make restart  # Restart API
 ## Environment Variables
 
 Edit `expense-management-api/.env` for:
-- **Stripe** — `STRIPE_KEY`, `STRIPE_SECRET`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRO_PRICE_MONTHLY`, `STRIPE_PRO_PRICE_YEARLY`
+- **Stripe** — `STRIPE_KEY`, `STRIPE_SECRET`, `STRIPE_WEBHOOK_SECRET`
 - **Gemini AI** — `GEMINI_API_KEY`

@@ -14,6 +14,7 @@ migrate:
 
 fresh:
 	docker compose exec api php artisan migrate:fresh --seed
+	docker compose exec api php artisan stripe:sync-prices || true
 
 seed:
 	docker compose exec api php artisan db:seed --force
@@ -26,6 +27,9 @@ shell:
 
 tinker:
 	docker compose exec api php artisan tinker
+
+sync:
+	docker compose exec api php artisan stripe:sync-prices
 
 restart:
 	docker compose restart api

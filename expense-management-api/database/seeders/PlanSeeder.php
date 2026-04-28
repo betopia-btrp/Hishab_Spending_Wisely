@@ -26,8 +26,8 @@ class PlanSeeder extends Seeder
                 "price_yearly" => 99.99,
                 "max_groups" => -1,
                 "max_members_per_group" => -1,
-                "stripe_price_monthly_id" => env("STRIPE_PRO_PRICE_MONTHLY"),
-                "stripe_price_yearly_id" => env("STRIPE_PRO_PRICE_YEARLY"),
+                "stripe_price_monthly_id" => null,
+                "stripe_price_yearly_id" => null,
             ],
         ];
 

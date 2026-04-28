@@ -31,6 +31,9 @@ if [ "${SKIP_MIGRATIONS:-}" != "true" ]; then
 
     echo "==> Seeding database..."
     php artisan db:seed --force || true
+
+    echo "==> Syncing Stripe prices..."
+    php artisan stripe:sync-prices || true
 fi
 
 echo "==> Starting Laravel server..."

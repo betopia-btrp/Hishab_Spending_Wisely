@@ -23,11 +23,11 @@ import {
   Plus,
   Download,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { formatCurrency } from "@/lib/utils";
 import api from "@/lib/axios";
 import { useAppContext } from "@/contexts/AppContext";
-import { DashboardSummary, ContextMember } from "@/types";
+import { ContextType, DashboardSummary, ContextMember } from "@/types";
 import NewExpenseModal from "@/components/(Expenses)/NewExpenseModal";
 
 export default function Dashboard() {
@@ -35,6 +35,21 @@ export default function Dashboard() {
   const [data, setData] = useState<DashboardSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const isGroup = currentContext?.type === ContextType.GROUP;
+  const inviteCode = currentContext?.invite_code;
+
+  const handleCopyCode = useCallback(async () => {
+    if (!inviteCode) return;
+    try {
+      await navigator.clipboard.writeText(inviteCode);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error("Failed to copy:", err);
+    }
+  }, [inviteCode]);
 
   const fetchDashboard = async () => {
     if (!currentContext) return;
@@ -155,6 +170,17 @@ export default function Dashboard() {
             </span>{" "}
             context
           </p>
+          {isGroup && inviteCode && (
+            <button
+              onClick={handleCopyCode}
+              className="mt-2 inline-flex items-center gap-2 bg-white border border-dashed border-slate-300 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:border-[#636B2F] hover:text-[#636B2F] transition-all"
+            >
+              <span className="tracking-[0.15em]">{inviteCode}</span>
+              <span className="text-[10px] uppercase tracking-wider">
+                {copied ? "Copied!" : "Copy"}
+              </span>
+            </button>
+          )}
         </div>
         <div className="flex gap-2">
           <button className="flex items-center gap-2 bg-white border border-slate-200 px-4 py-2 rounded-xl text-sm font-semibold hover:bg-slate-50 transition shadow-sm">
