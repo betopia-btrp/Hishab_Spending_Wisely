@@ -39,6 +39,7 @@ cd expense-management-api
 cp .env.example .env              # edit DB_HOST = 127.0.0.1 or localhost /DB_PORT
 composer install
 php artisan migrate:fresh --seed
+php artisan stripe:sync-prices
 php artisan key:generate
 php artisan jwt:secret
 php -S localhost:8000 -t public                # port 8000
