@@ -32,7 +32,7 @@ const Reminders = () => (
 );
 
 function AppContent() {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, loading, user } = useAuth();
   const { currentContext, loading: contextLoading } = useAppContext();
   const [showLogin, setShowLogin] = useState(false);
   const [inviteInfo, setInviteInfo] = useState<{ name: string; code: string; id: string } | null>(null);
@@ -65,10 +65,14 @@ function AppContent() {
     if (pendingBudgetContextId) {
       if (!checkedContextIds.current.has(pendingBudgetContextId)) {
         checkedContextIds.current.add(pendingBudgetContextId);
-        const hasSetBudget = localStorage.getItem(`budget_set_${pendingBudgetContextId}`);
-        if (!hasSetBudget) {
-          setBudgetPopupMode('create');
-          setShowBudgetPopup(true);
+        if (currentContext && user?.id !== currentContext.owner_id) {
+          // skip budget prompt for non-owner
+        } else {
+          const hasSetBudget = localStorage.getItem(`budget_set_${pendingBudgetContextId}`);
+          if (!hasSetBudget) {
+            setBudgetPopupMode('create');
+            setShowBudgetPopup(true);
+          }
         }
       }
       return;
@@ -77,10 +81,15 @@ function AppContent() {
     // Path B: first time we see this context — check if budget needs prompting
     if (currentContext && !checkedContextIds.current.has(currentContext.id)) {
       checkedContextIds.current.add(currentContext.id);
-      const hasSetBudget = localStorage.getItem(`budget_set_${currentContext.id}`);
-      if (!hasSetBudget) {
-        setBudgetPopupMode('create');
-        setShowBudgetPopup(true);
+      // Only prompt for budget if personal context or group owner
+      if (currentContext.type === ContextType.GROUP && user?.id !== currentContext.owner_id) {
+        // skip budget prompt for non-owner group members
+      } else {
+        const hasSetBudget = localStorage.getItem(`budget_set_${currentContext.id}`);
+        if (!hasSetBudget) {
+          setBudgetPopupMode('create');
+          setShowBudgetPopup(true);
+        }
       }
     }
   }, [isAuthenticated, pendingBudgetContextId, currentContext, contextLoading]);
