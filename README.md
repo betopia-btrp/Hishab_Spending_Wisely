@@ -36,7 +36,8 @@ If you prefer running natively, you need PHP 8.4+, Composer, Node.js 22+, and Po
 ```bash
 # Backend
 cd expense-management-api
-cp .env.example .env              # edit DB_HOST = 127.0.0.1 or localhost /DB_PORT
+cp .env.example .env
+# Edit .env: set DB_HOST=127.0.0.1, DB credentials, STRIPE_KEY, STRIPE_SECRET, and GEMINI_API_KEY
 composer install
 php artisan migrate:fresh --seed
 php artisan stripe:sync-prices
