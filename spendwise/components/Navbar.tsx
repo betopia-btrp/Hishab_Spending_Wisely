@@ -21,6 +21,7 @@ import Link from "next/link";
 import { useAppContext } from "@/contexts/AppContext";
 import { useAuth } from "@/contexts/AuthContext";
 import api from "@/lib/axios";
+import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "motion/react";
 
 interface Notification {
@@ -35,6 +36,13 @@ interface Notification {
     context_name: string;
     status: string;
     message: string;
+    // Budget alert fields
+    alert_tier?: string;
+    title?: string;
+    spent?: number;
+    budget?: number;
+    projected?: number;
+    category_name?: string;
   };
   read_at: string | null;
   created_at: string;
@@ -204,14 +212,27 @@ export default function Navbar() {
                             }`}
                           >
                             <div className="flex items-start gap-3">
-                              <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-sm font-black text-emerald-600 flex-shrink-0">
-                                {notification.data.user_name
-                                  ?.charAt(0)
-                                  .toUpperCase()}
+                              <div className={cn(
+                                "w-10 h-10 rounded-full flex items-center justify-center text-sm font-black flex-shrink-0",
+                                notification.data.type === 'budget_alert'
+                                  ? notification.data.alert_tier === 'overspend'
+                                    ? 'bg-rose-100 text-rose-600'
+                                    : 'bg-amber-100 text-amber-600'
+                                  : 'bg-emerald-100 text-emerald-600'
+                              )}>
+                                {notification.data.type === 'budget_alert'
+                                  ? notification.data.alert_tier === 'overspend'
+                                    ? '!'
+                                    : '~'
+                                  : notification.data.user_name?.charAt(0).toUpperCase()
+                                }
                               </div>
                               <div className="flex-1 min-w-0">
                                 <p className="text-sm font-bold text-slate-900">
-                                  {notification.data.message}
+                                  {notification.data.type === 'budget_alert'
+                                    ? notification.data.title || notification.data.message
+                                    : notification.data.message
+                                  }
                                 </p>
                                 <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
                                   <Clock size={10} />

@@ -1,0 +1,65 @@
+# Receipt-style note templates per category.
+# Used for ~8% of expenses to simulate real receipt parsing output.
+
+Food & Dining:
+  - "{restaurant} | {receipt_item_food}: {receipt_amt} | {receipt_item_food}: {receipt_amt} | Total: {receipt_total}"
+  - "{restaurant} — {receipt_item_food}: {receipt_amt}, {receipt_item_food}: {receipt_amt}, Total: {receipt_total}"
+  - "{restaurant} order: {receipt_item_food} x{receipt_qty}, {receipt_item_food} x{receipt_qty} — {receipt_total} BDT"
+  - "Bill: {restaurant} | {receipt_item_food} | {receipt_item_food} | {receipt_item_food} | Paid: {receipt_total}"
+  - "Receipt {restaurant} — Items: {receipt_item_food} @ {receipt_amt}, {receipt_item_food} @ {receipt_amt}"
+  - "{takeout_place} deliv | {receipt_item_food}:{receipt_amt} | {receipt_item_food}:{receipt_amt} | Tip: {receipt_amt} | Total: {receipt_total}"
+  - "{restaurant} | {receipt_item_food} {receipt_amt} | {receipt_item_food} {receipt_amt} | drinks {receipt_amt} | = {receipt_total}"
+
+Groceries:
+  - "{store} | {grocery_item} {amount}kg: {receipt_amt} | {grocery_item} {amount}L: {receipt_amt} | Total: {receipt_total}"
+  - "{store} — {grocery_item}: {receipt_amt}, {grocery_item}: {receipt_amt}, {grocery_item}: {receipt_amt}, Total: {receipt_total}"
+  - "groceries: {grocery_item} {receipt_amt} | {grocery_item} {receipt_amt} | {grocery_item} {receipt_amt} = {receipt_total}"
+  - "bazaar haul: {grocery_item} {receipt_amt}, {grocery_item} {receipt_amt}, {grocery_item} {receipt_amt}, {grocery_item} {receipt_amt}"
+  - "{store} trip | {grocery_item}: {receipt_amt} | {grocery_item}: {receipt_amt} | {grocery_item}: {receipt_amt} | {receipt_total}"
+  - "weekly stock: {grocery_item} {receipt_amt}, {grocery_item} {receipt_amt}, {grocery_item} {receipt_amt}, {grocery_item} {receipt_amt} — {receipt_total}"
+  - "monthly grocery: {grocery_item} {receipt_amt}, {grocery_item} {receipt_amt}, {grocery_item} {receipt_amt}, {grocery_item} {receipt_amt} = {receipt_total}"
+
+Shopping:
+  - "{store} | {item}: {receipt_amt} | {item}: {receipt_amt} | Total: {receipt_total}"
+  - "purchase: {item} @ {receipt_amt}, {item} @ {receipt_amt} — {store} — {receipt_total}"
+  - "{store} shopping: {item} {receipt_amt} | {item} {receipt_amt} | {item} {receipt_amt}"
+  - "{item}: {receipt_amt}, {item}: {receipt_amt}, {item}: {receipt_amt} | from {store} | Total: {receipt_total}"
+  - "Eid shopping: {item} {receipt_amt}, {item} {receipt_amt}, {item} {receipt_amt} = {receipt_total}"
+  - "Bought: {item} ({receipt_amt}), {item} ({receipt_amt}) at {store}"
+
+Entertainment:
+  - "{cinema} | tickets x{receipt_qty}: {receipt_amt} | popcorn: {receipt_amt} | Total: {receipt_total}"
+  - "movie night: {cinema} — tickets: {receipt_amt}, snacks: {receipt_amt}, Total: {receipt_total}"
+  - "{event} tickets x{receipt_qty} @ {receipt_amt} each = {receipt_total}"
+  - "{service} subscription — {receipt_total}/month"
+
+Health & Medical:
+  - "Pharmacy | {item}: {receipt_amt} | {item}: {receipt_amt} | Total: {receipt_total}"
+  - "lab tests: {test_type} {receipt_amt}, {test_type} {receipt_amt} = {receipt_total}"
+  - "doctor consult: {receipt_amt} | medicine: {receipt_amt} | Total: {receipt_total}"
+  - "Prescription: {item} {receipt_amt}, {item} {receipt_amt} = {receipt_total}"
+
+Travel:
+  - "Flight {destination_intercity} | ticket: {receipt_amt} | baggage: {receipt_amt} | Total: {receipt_total}"
+  - "Hotel {destination_intercity} — {amount} nights @ {receipt_amt} = {receipt_total}"
+  - "Trip expenses: transport {receipt_amt}, food {receipt_amt}, stay {receipt_amt} = {receipt_total}"
+
+Education:
+  - "Books: {item} {receipt_amt}, {item} {receipt_amt}, {item} {receipt_amt} = {receipt_total}"
+  - "Course materials: {item} {receipt_amt}, {item} {receipt_amt} | Total: {receipt_total}"
+
+Utilities:
+  - "Bill breakdown: electricity {receipt_amt}, water {receipt_amt}, gas {receipt_amt} = {receipt_total}"
+  - "mobile recharge: {receipt_amt} + data pack: {receipt_amt} = {receipt_total}"
+
+Transportation:
+  - "Rides: Uber {receipt_amt}, CNG {receipt_amt}, rickshaw {receipt_amt} = {receipt_total}"
+  - "fuel: {receipt_amt} | service: {receipt_amt} | Total: {receipt_total}"
+
+Personal Care:
+  - "{salon} | haircut: {receipt_amt} | facial: {receipt_amt} | Total: {receipt_total}"
+  - "Beauty: {item} {receipt_amt}, {item} {receipt_amt} = {receipt_total}"
+
+Others:
+  - "Misc: {item} {receipt_amt}, {item} {receipt_amt} = {receipt_total}"
+  - "Donation: {cause} — {receipt_total}"

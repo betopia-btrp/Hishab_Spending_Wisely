@@ -10,10 +10,12 @@ use App\Http\Controllers\Context\ContextController;
 use App\Http\Controllers\Dashboard\DashboardController;
 use App\Http\Controllers\Expense\CategoryController;
 use App\Http\Controllers\Expense\ExpenseController;
+use App\Http\Controllers\Forecast\ForecastController;
 use App\Http\Controllers\Reminder\ReminderController;
 use App\Http\Controllers\SubscriptionController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Notification\NotificationController;
+use App\Http\Controllers\Admin\AdminController;
 
 /*
 |--------------------------------------------------------------------------
@@ -74,6 +76,7 @@ Route::middleware("auth:api")->group(function () {
     Route::prefix("expenses")->group(function () {
         Route::get("/", [ExpenseController::class, "index"]);
         Route::post("/", [ExpenseController::class, "store"]);
+        Route::post("/suggest-category", [ExpenseController::class, "suggestCategory"]);
         Route::get("/{expense}", [ExpenseController::class, "show"]);
         Route::put("/{expense}", [ExpenseController::class, "update"]);
         Route::delete("/{expense}", [ExpenseController::class, "destroy"]);
@@ -113,6 +116,11 @@ Route::middleware("auth:api")->group(function () {
             "markAllAsRead",
         ]);
         Route::delete("/{id}", [NotificationController::class, "destroy"]);
+    });
+
+    Route::prefix("forecasts")->group(function () {
+        Route::get("/",    [ForecastController::class, "index"]);
+        Route::post("/run", [ForecastController::class, "run"]);
     });
 
     Route::prefix('reminders')->group(function () {
@@ -155,5 +163,14 @@ Route::middleware("auth:api")->group(function () {
             "verifySession",
         ]);
         Route::get("/status", [SubscriptionController::class, "status"]);
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Admin Routes (JWT + AdminMiddleware required)
+    |--------------------------------------------------------------------------
+    */
+    Route::prefix("admin")->middleware(\App\Http\Middleware\AdminMiddleware::class)->group(function () {
+        Route::get("/dashboard", [AdminController::class, "dashboard"]);
     });
 });

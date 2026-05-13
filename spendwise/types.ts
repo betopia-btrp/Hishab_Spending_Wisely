@@ -14,6 +14,7 @@ export interface User {
   email: string;
   avatar_url?: string;
   is_premium: boolean;
+  is_admin?: boolean;
   created_at?: string;
   updated_at?: string;
 }
@@ -101,6 +102,26 @@ export interface Settlement {
   amount: number;
   settled_by: string;
   created_at: string;
+}
+
+export interface AdminDashboardData {
+  overview: {
+    total_users: number;
+    total_expenses: number;
+    total_contexts: number;
+    total_splits: number;
+    total_budgets: number;
+    premium_users: number;
+    free_users: number;
+    estimated_mrr: number;
+  };
+  expenses_trend: { month: string; count: number; total: number }[];
+  category_distribution: { name: string; count: number; percentage: number }[];
+  daily_spending_30d: { date: string; total: number }[];
+  top_contexts: { id: string; name: string; type: string; member_count: number; expense_count: number; total_spent: number }[];
+  top_users: { id: string; name: string; expense_count: number; total_spent: number }[];
+  user_growth: { month: string; signups: number }[];
+  recent_activity: { id: string; amount: number; note: string; expense_date: string; category_name: string; user_name: string; context_name: string; created_at: string }[];
 }
 
 export interface DashboardSummary {

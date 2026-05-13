@@ -22,9 +22,11 @@ import {
   ArrowUpRight,
   Plus,
   Download,
+  AlertTriangle,
+  TrendingDown,
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, cn } from "@/lib/utils";
 import api from "@/lib/axios";
 import { useAppContext } from "@/contexts/AppContext";
 import { ContextType, DashboardSummary, ContextMember } from "@/types";
@@ -36,6 +38,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [forecastAlerts, setForecastAlerts] = useState<any[]>([]);
 
   const isGroup = currentContext?.type === ContextType.GROUP;
   const inviteCode = currentContext?.invite_code;
@@ -112,6 +115,22 @@ export default function Dashboard() {
         recent_expenses: expenses.slice(0, 5) || [],
         active_members: dashRes.data.active_members || [],
       });
+
+      // Trigger forecast + fetch alerts
+      try {
+        await api.post('/forecasts/run');
+        const forecastRes = await api.get('/forecasts', {
+          params: {
+            context_id: currentContext.id,
+            month: new Date().getMonth() + 1,
+            year: new Date().getFullYear(),
+          },
+        });
+        const alerts = (forecastRes.data?.forecasts || []).filter((f: any) => f.alert_tier);
+        setForecastAlerts(alerts);
+      } catch (err) {
+        // Forecast is optional — don't block dashboard
+      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -158,6 +177,38 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
+      {forecastAlerts.length > 0 && (
+        <div className={cn(
+          "flex items-start gap-3 p-4 rounded-2xl border shadow-sm",
+          forecastAlerts.some(a => a.alert_tier === 'overspend')
+            ? 'bg-rose-50 border-rose-200'
+            : 'bg-amber-50 border-amber-200'
+        )}>
+          <div className={cn(
+            "w-10 h-10 rounded-xl flex items-center justify-center shrink-0",
+            forecastAlerts.some(a => a.alert_tier === 'overspend')
+              ? 'bg-rose-100 text-rose-600'
+              : 'bg-amber-100 text-amber-600'
+          )}>
+            {forecastAlerts.some(a => a.alert_tier === 'overspend')
+              ? <AlertTriangle size={20} />
+              : <TrendingUp size={20} />
+            }
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-bold text-slate-900 text-sm">
+              {forecastAlerts.some(a => a.alert_tier === 'overspend')
+                ? 'Some budgets are exceeded'
+                : 'Some budgets on track to exceed'
+              }
+            </p>
+            <p className="text-sm text-slate-600 mt-0.5">
+              {forecastAlerts.length} budget{forecastAlerts.length > 1 ? 's' : ''} need attention —
+              {' '}check the Budgets tab for details
+            </p>
+          </div>
+        </div>
+      )}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">

@@ -1,0 +1,437 @@
+# ─── Standard English Note Templates ───
+# Placeholders {key} are filled from values.yaml
+# _opinion = emotional/opinion notes (3% of expenses)
+# _combined = multi-category combined notes (5%)
+# _shorthand = abbreviated single-word/short notes (used as fallback base)
+
+Food & Dining:
+  - "lunch at {restaurant}"
+  - "dinner at {restaurant}"
+  - "coffee at {cafe}"
+  - "{food_item} from {takeout_place}"
+  - "breakfast at {breakfast_spot}"
+  - "late night snack — {snack_place}"
+  - "team lunch at {restaurant}"
+  - "birthday dinner for {name}"
+  - "weekend brunch at {cafe}"
+  - "ordered {food_item} via {app}"
+  - "treat: {food_item}"
+  - "cha and biscuits"
+  - "paratha & daal for breakfast"
+  - "{food_item} for lunch"
+  - "street food — {snack_place}"
+  - "pizza delivery from {restaurant}"
+  - "sushi at {restaurant}"
+  - "iftar items from {takeout_place}"
+  - "seheri — {food_item}"
+  - "buffet lunch at {restaurant}"
+  - "office canteen lunch"
+  - "chicken {food_item}"
+  - "beef {food_item}"
+  - "mutton {food_item}"
+  - "chaat from street vendor"
+  - "bought {food_item} on the way"
+  - "cooking — made {food_item} at home"
+  - "ordered in: {food_item}"
+
+Food & Dining_opinion:
+  - "{opinion_positive} {food_item} at {restaurant}"
+  - "{opinion_negative} service at {restaurant}"
+  - "worth every taka — {food_item}"
+  - "never ordering from {restaurant} again"
+  - "best {food_item} in town"
+  - "overpriced and small portion at {restaurant}"
+  - "decent {food_item}, nothing special"
+  - "way too expensive at {restaurant}"
+  - "can't stop ordering {food_item}"
+  - "disappointing {food_item} today"
+
+Food & Dining_combined:
+  - "groceries from {store} + lunch at {restaurant}"
+  - "{food_item} and coffee at {cafe}"
+  - "breakfast at {breakfast_spot} then lunch at {restaurant}"
+  - "dinner at {restaurant} + {snack_place}"
+  - "picked up {food_item} and {grocery_item}"
+
+Food & Dining_shorthand:
+  - "lnch"
+  - "dinnr"
+  - "cofee"
+  - "snck"
+  - "fud"
+  - "brkfst"
+  - "{food_item}"
+
+# ─── Festival-specific templates ───
+# These get higher weight during their respective seasonal periods
+Food & Dining_durga_puja:
+  - "puja bhog at pandal"
+  - "durga puja feast — {food_item}"
+  - "anjali prasad — sweets"
+  - "pandal hopping snacks — {snack_place}"
+
+Food & Dining_christmas:
+  - "christmas dinner at {restaurant}"
+  - "christmas cake from {store}"
+  - "christmas eve feast — {food_item}"
+  - "holiday brunch at {cafe}"
+
+Food & Dining_eid:
+  - "eid feast at home"
+  - "eid lunch at {restaurant}"
+  - "sheer khorma and sweets"
+  - "eid party food — {food_item}"
+
+Food & Dining_puja_diwali:
+  - "diwali sweets from {store}"
+  - "puja special — {food_item}"
+  - "diwali dinner at {restaurant}"
+
+Shopping_durga_puja:
+  - "puja shopping — {item}"
+  - "new clothes for puja"
+  - "puja gift for {name}"
+  - "pandal decoration items from {store}"
+
+Shopping_christmas:
+  - "christmas gift for {name}"
+  - "secret santa — {item}"
+  - "christmas decorations from {store}"
+  - "holiday shopping at {store}"
+
+Shopping_eid:
+  - "eid shopping — {item}"
+  - "eid gift for {name}"
+  - "new panjabi for eid"
+  - "eid jama from {store}"
+
+Shopping_diwali:
+  - "diwali gift for {name}"
+  - "diwali lights from {store}"
+  - "diwali decoration — {item}"
+  - "new clothes for diwali"
+
+Others_eid:
+  - "eid fitra"
+  - "eid donation — {cause}"
+  - "eid zakat"
+  - "eid salami for kids"
+
+Others_puja:
+  - "puja donation"
+  - "pandal contribution"
+  - "temple donation — {cause}"
+
+Others_christmas:
+  - "church donation"
+  - "christmas charity — {cause}"
+  - "caroling donation"
+
+Others_buddha_purnima:
+  - "buddha purnima donation"
+  - "temple offering"
+  - "monastery donation — {cause}"
+
+Transportation:
+  - "Uber to {destination_local}"
+  - "Pathao ride to {destination_local}"
+  - "CNG to {destination_local}"
+  - "bus fare — {route_local}"
+  - "rickshaw to {destination_local}"
+  - "fuel — {vehicle_type}"
+  - "metro rail ticket to {destination_local}"
+  - "parking fee at {location}"
+  - "toll for {highway}"
+  - "bike service — {service_type}"
+  - "car wash"
+  - "Uber share to {destination_local}"
+  - "shuttle bus to {destination_local}"
+  - "auto rickshaw to {destination_local}"
+  - "train ticket — {route_intercity}"
+  - "launch/ferry ticket — {route_intercity}"
+  - "lift from {name}"
+  - "uber pool to {destination_local}"
+  - "oil change — {vehicle_type}"
+  - "bike fuel — {vehicle_type}"
+
+Transportation_shorthand:
+  - "ubr"
+  - "ptho"
+  - "cng"
+  - "rkshw"
+  - "bus"
+  - "fuel"
+  - "prkng"
+
+Transportation_combined:
+  - "Uber to {destination_local} + parking at {location}"
+  - "fuel + bus fare"
+  - "metro + rickshaw to {destination_local}"
+
+Groceries:
+  - "weekly groceries from {store}"
+  - "groceries: {grocery_item}, {grocery_item}"
+  - "vegetables from {store}"
+  - "fruits from {store}"
+  - "rice — {amount}kg"
+  - "{grocery_item} and {grocery_item}"
+  - "daily essentials from {store}"
+  - "fish from {store}"
+  - "meat from {store}"
+  - "eggs — {amount} pcs"
+  - "milk and bread from {store}"
+  - "cooking oil and spices"
+  - "monthly grocery stock from {store}"
+  - "bazaar — {store}"
+  - "dairy items from {store}"
+  - "frozen items from {store}"
+  - "snacks and drinks from {store}"
+  - "{store} delivery"
+
+Groceries_combined:
+  - "groceries from {store} + vegetables from {store}"
+  - "fish from {store} and {grocery_item} from {store}"
+  - "meat + eggs from {store}"
+
+Groceries_shorthand:
+  - "grcrs"
+  - "bazar"
+  - "{grocery_item}"
+
+Shopping:
+  - "clothes from {store}"
+  - "shoes from {store}"
+  - "electronics from {store}"
+  - "household items from {store}"
+  - "Eid shopping at {store}"
+  - "Boishakh shopping — {item}"
+  - "gift for {name}"
+  - "home decor from {store}"
+  - "kitchen items from {store}"
+  - "furniture from {store}"
+  - "books from {store}"
+  - "stationery from {store}"
+  - "gadget: {item}"
+  - "accessories from {store}"
+  - "skincare products from {store}"
+  - "makeup from {store}"
+  - "baby items from {store}"
+  - "pet supplies from {store}"
+  - "online order — {item}"
+  - "sale shopping at {store}"
+  - "weekly bazaar — {item}"
+  - "{store} purchase"
+
+Shopping_opinion:
+  - "{opinion_positive} deal at {store}"
+  - "{opinion_negative} quality {item} from {store}"
+  - "so worth it — {item}"
+  - "impulse buy: {item}"
+  - "bargain! {item} at {store}"
+  - "way overpriced {item}"
+
+Shopping_combined:
+  - "clothes from {store} + shoes from {store}"
+  - "groceries from {store} + household items from {store}"
+
+Shopping_shorthand:
+  - "shopng"
+  - "by frm mrkt"
+  - "got {item}"
+
+Utilities:
+  - "electricity bill — {month}"
+  - "water bill — {month}"
+  - "gas bill — {month}"
+  - "internet bill — {month}"
+  - "phone bill — {month}"
+  - "cable TV bill — {month}"
+  - "mobile recharge — {mobile_operator}"
+  - "broadband bill — {month}"
+  - "utility bill payment"
+  - "home internet recharge"
+  - "gas cylinder refill"
+  - "generator fuel"
+
+Utilities_shorthand:
+  - "bill"
+  - "elec"
+  - "gas bill"
+  - "net bill"
+  - "rcrg"
+
+Rent & Housing:
+  - "monthly rent — {month}"
+  - "house rent for {month}"
+  - "apartment rent — {month}"
+  - "maintenance fee — {month}"
+  - "security deposit"
+  - "repair — {item}"
+  - "plumbing repair"
+  - "electrician — {item}"
+  - "property tax"
+  - "advance rent"
+
+Rent & Housing_shorthand:
+  - "rent"
+  - "mntnc"
+  - "{month} rent"
+
+Entertainment:
+  - "movie tickets at {cinema}"
+  - "concert tickets — {event}"
+  - "event ticket — {event}"
+  - "streaming subscription — {service}"
+  - "Netflix subscription"
+  - "game night — {item}"
+  - "bowling at {location}"
+  - "cafe hangout at {cafe}"
+  - "amusement park — {location}"
+  - "book purchase — {item}"
+  - "music streaming — {service}"
+  - "gaming subscription — {service}"
+  - "board games — {item}"
+  - "picnic supplies"
+  - "fishing trip gear"
+  - "photography — {item}"
+  - "painting supplies"
+  - "music instrument — {item}"
+
+Entertainment_opinion:
+  - "{opinion_positive} movie at {cinema}"
+  - "boring {event}"
+  - "amazing {event} experience"
+  - "waste of money — {event}"
+
+Entertainment_combined:
+  - "movie at {cinema} + dinner at {restaurant}"
+  - "cafe hangout + bowling at {location}"
+
+Entertainment_shorthand:
+  - "movie"
+  - "game"
+  - "ntflx"
+  - "spotyp"
+
+Health & Medical:
+  - "doctor visit — {doctor_type}"
+  - "medicine from pharmacy"
+  - "lab test — {test_type}"
+  - "hospital checkup"
+  - "dental checkup"
+  - "eye checkup — glasses"
+  - "vaccination"
+  - "health supplement — {item}"
+  - "gym membership — {month}"
+  - "yoga class fee"
+  - "therapy session"
+  - "blood test at {location}"
+  - "x-ray at {location}"
+  - "first aid supplies"
+  - "vitamins — {item}"
+
+Health & Medical_opinion:
+  - "emergency — {doctor_type} visit"
+  - "rushed to hospital for checkup"
+  - "needed {item} badly"
+  - "routine checkup — all good"
+
+Health & Medical_shorthand:
+  - "meds"
+  - "doc"
+  - "tst"
+  - "chckp"
+
+Education:
+  - "tuition fee — {month}"
+  - "book purchase — {item}"
+  - "course fee — {course}"
+  - "exam registration fee"
+  - "semester fee"
+  - "stationery from {store}"
+  - "online course — {course}"
+  - "coaching fee — {month}"
+  - "lab coat and supplies"
+  - "library fee"
+
+Education_shorthand:
+  - "bk"
+  - "crse"
+  - "tutn fee"
+  - "exam"
+
+Travel:
+  - "flight ticket to {destination_intercity}"
+  - "hotel booking at {destination_intercity}"
+  - "bus ticket to {destination_intercity}"
+  - "train ticket to {destination_intercity}"
+  - "tour package — {destination_intercity}"
+  - "visa fee — {country}"
+  - "travel insurance"
+  - "luggage — {item}"
+  - "resort booking — {destination_intercity}"
+  - "road trip fuel — {destination_intercity}"
+  - "homestay at {destination_intercity}"
+  - "sightseeing tickets at {destination_intercity}"
+
+Travel_opinion:
+  - "{opinion_positive} trip to {destination}"
+  - "best vacation — {destination}"
+  - "overpriced hotel at {destination}"
+  - "dream trip to {destination}"
+
+Travel_shorthand:
+  - "flght"
+  - "hotl"
+  - "trip"
+  - "vsa"
+
+Personal Care:
+  - "haircut at {salon}"
+  - "salon — {service}"
+  - "spa at {salon}"
+  - "grooming kit — {item}"
+  - "nail salon at {salon}"
+  - "massage at {salon}"
+  - "barber shop at {salon}"
+  - "skin care — {item}"
+  - "hair products from {store}"
+  - "beauty parlor — {service}"
+
+Personal Care_shorthand:
+  - "salon"
+  - "hcrt"
+  - "spa"
+  - "shve"
+
+Others:
+  - "donation — {cause}"
+  - "gift for {name}"
+  - "miscellaneous: {item}"
+  - "subscription fee — {service}"
+  - "membership fee — {place}"
+  - "event registration — {event}"
+  - "charity at {place}"
+  - "cash withdrawal"
+  - "money transfer to {name}"
+  - "bank charge"
+  - "fine — {reason}"
+  - "customs duty"
+  - "license renewal — {license_type}"
+  - "postage and shipping"
+  - "ATM fee"
+
+Others_shorthand:
+  - "misc"
+  - "cash"
+  - "bnk"
+  - "fine"
+  - "gft"
+
+# Generic fallback for any category
+_generic_shorthand:
+  - "paid"
+  - "bought"
+  - "got"
+  - "exp"
+  - "bill"

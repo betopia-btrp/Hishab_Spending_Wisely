@@ -1,0 +1,132 @@
+# Full Bangla (Bengali) sentence templates per category.
+# Used for ~12% of expenses to generate fully Bangla-language notes.
+# Placeholders in {curly_braces} are filled from bangla_words.yaml.
+
+Food & Dining:
+  - "{bangla_restaurant} তে দুপুরের খাবার"
+  - "{bangla_food_item} — রাতের খাবার"
+  - "ইফতার: {bangla_food_item}, {bangla_food_item}"
+  - "সেহরি — {bangla_food_item} আর {bangla_food_item}"
+  - "{bangla_restaurant} থেকে {bangla_food_item} অর্ডার করলাম"
+  - "বিকালের নাস্তা — {bangla_snack} চা সহ"
+  - "বাসা থেকে {bangla_food_item} এনেছিলাম"
+  - "ক্যান্টিনে দুপুরের খাবার: {bangla_food_item}"
+  - "রাস্তার {bangla_snack} খেলাম"
+  - "পথের খাবার — {bangla_food_item}, {bangla_food_item}"
+  - "{bangla_food_item} আর {bangla_food_item} — {bangla_restaurant}"
+  - "চায়ের দোকানে নাস্তা: {bangla_snack}"
+  - "বাসায় রান্না — {bangla_food_item}, {bangla_food_item}"
+  - "হোটেল থেকে {bangla_food_item} নিয়ে আসলাম"
+  - "ফাস্টফুড: {bangla_food_item} — {bangla_restaurant} থেকে"
+
+Transportation:
+  - "{bangla_destination_local} যাওয়ার রিকশা ভাড়া"
+  - "সিএনজি — {bangla_destination_local} থেকে {bangla_destination_local}"
+  - "বাস ভাড়া — {bangla_route_local}"
+  - "উবার — {bangla_destination_local} যাওয়া"
+  - "পাঠাও বাইক — {bangla_destination_local}"
+  - "মেট্রোরেল টিকেট — {bangla_destination_local}"
+  - "অফিস থেকে বাসায় ফেরা"
+  - "লঞ্চের টিকেট — {bangla_route_intercity}"
+  - "ট্রেনের টিকেট — {bangla_route_intercity}"
+
+Groceries:
+  - "{bangla_store} থেকে সাপ্তাহিক বাজার"
+  - "বাজার: {bangla_grocery_item}, {bangla_grocery_item}, {bangla_grocery_item}"
+  - "কাঁচাবাজার থেকে সবজি কিনলাম"
+  - "মাছ কিনলাম — {bangla_grocery_item}"
+  - "মাংস — {bangla_grocery_item} ({amount} কেজি)"
+  - "চাল, ডাল, তেল — {bangla_store} থেকে"
+  - "মাসিক বাজার: {bangla_grocery_item}, {bangla_grocery_item}, {bangla_grocery_item}"
+  - "দুধ আর ডিম — {bangla_store}"
+  - "ফল কিনলাম: {bangla_grocery_item}, {bangla_grocery_item}"
+  - "বাজার থেকে {bangla_grocery_item} আর {bangla_grocery_item} আনলাম"
+  - "মসলা — {bangla_grocery_item}, {bangla_grocery_item}"
+
+Shopping:
+  - "ঈদের শপিং — {bangla_shopping_item}"
+  - "বৈশাখের কেনাকাটা: {bangla_shopping_item}, {bangla_shopping_item}"
+  - "{bangla_store} থেকে {bangla_shopping_item} কিনলাম"
+  - "নতুন {bangla_shopping_item} — দরকার ছিল"
+  - "বাচ্চার জন্য {bangla_shopping_item}"
+  - "জামা-কাপড় — {bangla_store} থেকে"
+  - "বাজার থেকে {bangla_shopping_item} কিনে আনলাম"
+  - "জুতা কিনলাম — {bangla_store}"
+  - "উপহার: {bangla_shopping_item}"
+  - "মোবাইল কাভার — {bangla_store}"
+
+Utilities:
+  - "বিদ্যুৎ বিল — {month} মাসের"
+  - "পানির বিল — {month}"
+  - "গ্যাস বিল — {month}"
+  - "ইন্টারনেট বিল — {month}"
+  - "মোবাইল রিচার্জ — {mobile_operator}"
+  - "ডিশ লাইন বিল — {month}"
+  - "গ্যাস সিলিন্ডার — {amount} টাকা"
+  - "ওয়াসা বিল — {month}"
+
+Rent & Housing:
+  - "বাসা ভাড়া — {month} মাসের"
+  - "মাসিক ভাড়া — {month}"
+  - "বাসার মেরামত — প্লাম্বিং"
+  - "ইলেকট্রিক মিস্ত্রি — {amount} টাকা"
+  - "বাসার কাজ — {item} মেরামত"
+  - "অগ্রিম ভাড়া — {amount} টাকা"
+
+Entertainment:
+  - "সিনেমা — {cinema}"
+  - "সিনেমার টিকেট — {amount} টাকা"
+  - "কনসার্ট — {event}"
+  - "মেলায় গেলাম — {event}"
+  - "বইমেলা — বই কিনলাম"
+  - "ঘুরতে গেলাম — {place}"
+  - "নেটফ্লিক্স সাবস্ক্রিপশন"
+  - "গেমিং — {item}"
+
+Health & Medical:
+  - "ডাক্তার দেখালাম — {doctor_type}"
+  - "ওষুধ কিনলাম — ফার্মেসি থেকে"
+  - "হাসপাতালে গেলাম — চেকআপ"
+  - "রক্ত পরীক্ষা — {test_type}"
+  - "ডেন্টিস্ট — দাঁতের চেকআপ"
+  - "চোখের ডাক্তার — চশমা"
+  - "ভিটামিন — {item}"
+  - "জ্বরের ওষুধ"
+
+Education:
+  - "স্কুলের ফি — {month} মাসের"
+  - "কলেজ ফি — সেমিস্টার"
+  - "বই কিনলাম — {item}"
+  - "খাতা, কলম, পেন্সিল — দোকান থেকে"
+  - "কোচিং ফি — {month}"
+  - "অনলাইন কোর্স — {course}"
+  - "পরীক্ষার ফি — {amount} টাকা"
+  - "{course} কোর্স ফি"
+
+Travel:
+  - "বিমান টিকেট — {bangla_destination_intercity}"
+  - "হোটেল — {bangla_destination_intercity}"
+  - "বাস টিকেট — {bangla_destination_intercity}"
+  - "ট্রেন টিকেট — {bangla_destination_intercity}"
+  - "ভিসা ফি — {country}"
+  - "ট্যুর প্যাকেজ — {bangla_destination_intercity}"
+  - "ঘুরতে গেলাম — {bangla_destination_intercity}"
+
+Personal Care:
+  - "চুল কাটা — {salon}"
+  - "পার্লারে গেলাম — {salon}"
+  - "দাড়ি শেভ — সেলুন"
+  - "ম্যাসাজ — {salon}"
+  - "স্কিন কেয়ার — {item}"
+  - "শ্যাম্পু আর সাবান — দোকান থেকে"
+
+Others:
+  - "দান — {cause}"
+  - "মসজিদে দান — {amount} টাকা"
+  - "যাকাত — {amount} টাকা"
+  - "ঈদের ফিতরা — {amount} টাকা"
+  - "উপহার — {name} এর জন্য"
+  - "ব্যাংক চার্জ — {amount} টাকা"
+  - "ক্যাশ তুললাম — এটিএম থেকে"
+  - "জরিমানা — {reason}"
+  - "লাইসেন্স নবায়ন — {license_type}"

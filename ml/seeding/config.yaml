@@ -1,0 +1,897 @@
+# ─── Base Entity Counts ───
+base_users: 1000
+base_personal_contexts: 1000  # one per user
+base_group_contexts: 200
+members_per_group_min: 2
+members_per_group_max: 8
+
+# ─── Category Distribution (must sum to 100) ───
+category_weights:
+  Food & Dining: 35
+  Transportation: 15
+  Groceries: 12
+  Shopping: 10
+  Utilities: 8
+  Rent & Housing: 7
+  Entertainment: 5
+  Health & Medical: 4
+  Education: 2
+  Travel: 1
+  Personal Care: 0.5
+  Others: 0.5
+
+# ─── Amount Distribution (BDT) ───
+# Uses log-normal: mu = ln(mean), sigma = 0.5
+amount_distribution:
+  Food & Dining:
+    mean: 450
+    min: 15
+    max: 5000
+  Transportation:
+    mean: 200
+    min: 10
+    max: 3000
+  Groceries:
+    mean: 1500
+    min: 50
+    max: 15000
+  Shopping:
+    mean: 2500
+    min: 50
+    max: 50000
+  Utilities:
+    mean: 3000
+    min: 100
+    max: 15000
+  Rent & Housing:
+    mean: 15000
+    min: 1000
+    max: 80000
+  Entertainment:
+    mean: 800
+    min: 20
+    max: 10000
+  Health & Medical:
+    mean: 1200
+    min: 50
+    max: 100000
+  Education:
+    mean: 5000
+    min: 200
+    max: 200000
+  Travel:
+    mean: 8000
+    min: 300
+    max: 150000
+  Personal Care:
+    mean: 400
+    min: 20
+    max: 3000
+  Others:
+    mean: 500
+    min: 10
+    max: 10000
+
+# ─── Split Type Distribution ───
+split_distribution:
+  personal:
+    none: 100
+  group_2:
+    none: 30
+    equal: 50
+    custom: 20
+  group_3plus:
+    none: 20
+    equal: 50
+    custom: 20
+    percentage: 10
+
+# ─── Budget Category Weights (must sum to 100) ───
+budget_weights:
+  Food & Dining: 25
+  Transportation: 15
+  Groceries: 12
+  Shopping: 10
+  Utilities: 10
+  Rent & Housing: 8
+  Entertainment: 7
+  Health & Medical: 5
+  Education: 3
+  Travel: 3
+  Personal Care: 1.5
+  Others: 0.5
+
+# ─── Hourly Distribution (weights, 0-23) ───
+hourly_weights:
+  0: 1
+  1: 1
+  2: 0.5
+  3: 0.5
+  4: 0.5
+  5: 0.5
+  6: 2
+  7: 3
+  8: 5
+  9: 6
+  10: 8
+  11: 8
+  12: 6
+  13: 5
+  14: 4
+  15: 4
+  16: 5
+  17: 6
+  18: 7
+  19: 9
+  20: 8
+  21: 4
+  22: 3
+  23: 3
+
+# ─── Temporal Distribution ───
+date_range_months: 24
+
+day_of_week_weights:
+  Monday: 1.0
+  Tuesday: 0.9
+  Wednesday: 0.9
+  Thursday: 1.0
+  Friday: 1.8
+  Saturday: 1.6
+  Sunday: 1.1
+
+month_period_weights:
+  month_end_25_31: 1.5
+  month_begin_1_7: 1.3
+  mid_month_10_20: 1.0
+
+seasonal_periods:
+  # ── Islamic festivals ──
+  - name: "Eid-ul-Fitr"
+    start_month: 3
+    start_day: 20
+    end_month: 4
+    end_day: 10
+    weight: 2.5
+    religion: islam
+  - name: "Eid-ul-Adha"
+    start_month: 6
+    start_day: 1
+    end_month: 7
+    end_day: 15
+    weight: 2.0
+    religion: islam
+  # ── Hindu festivals ──
+  - name: "Durga Puja"
+    start_month: 9
+    start_day: 25
+    end_month: 10
+    end_day: 12
+    weight: 2.2
+    religion: hindu
+    categories_boost:
+      Shopping: 3.5
+      Food & Dining: 2.0
+      Travel: 2.5
+      Entertainment: 2.0
+  - name: "Kali Puja / Diwali"
+    start_month: 10
+    start_day: 20
+    end_month: 11
+    end_day: 5
+    weight: 1.8
+    religion: hindu
+    categories_boost:
+      Shopping: 2.5
+      Food & Dining: 1.8
+      Groceries: 1.5
+  # ── Buddhist festivals ──
+  - name: "Buddha Purnima"
+    start_month: 5
+    start_day: 18
+    end_month: 5
+    end_day: 25
+    weight: 1.5
+    religion: buddhist
+    categories_boost:
+      Others: 3.0    # donations
+      Food & Dining: 1.5
+      Travel: 1.5
+  # ── Christian festivals ──
+  - name: "Christmas"
+    start_month: 12
+    start_day: 20
+    end_month: 12
+    end_day: 31
+    weight: 2.0
+    religion: christian
+    categories_boost:
+      Shopping: 3.0
+      Food & Dining: 2.5
+      Entertainment: 2.0
+      Others: 1.5
+  - name: "Easter"
+    start_month: 3
+    start_day: 28
+    end_month: 4
+    end_day: 10
+    weight: 1.3
+    religion: christian
+    categories_boost:
+      Food & Dining: 1.8
+      Others: 1.5
+  # ─── Cultural / secular ───
+  - name: "Pohela Boishakh"
+    start_month: 4
+    start_day: 10
+    end_month: 4
+    end_day: 18
+    weight: 1.8
+  - name: "Winter"
+    start_month: 11
+    start_day: 1
+    end_month: 2
+    end_day: 28
+    weight: 1.2
+  - name: "Monsoon"
+    start_month: 6
+    start_day: 1
+    end_month: 9
+    end_day: 30
+    weight: 0.8
+
+# ─── Note Realism Factors ───
+note_realism:
+  typo_chance: 0.05
+  short_form_chance: 0.10
+  null_chance: 0.03
+  empty_chance: 0.02
+  bangla_chance: 0.08
+  amount_in_note_chance: 0.15
+  person_ref_chance: 0.12
+  date_ref_chance: 0.05
+
+# ─── Other Probabilities ───
+is_settled_chance: 0.85
+soft_delete_chance: 0.01
+
+# ═══════════════════════════════════════════════════════════════
+#  User Angle System
+# ═══════════════════════════════════════════════════════════════
+
+user_angles:
+  # ── Profession (10 values, weights sum to 100) ──
+  profession:
+    software_engineer:
+      weight: 12
+      food_transport_mult: 1.2
+      grocery_mult: 0.6
+      entertainment_mult: 1.5
+      education_mult: 1.3
+      template_tags: [app, cafe, electronics, online]
+      hours_peak: [9,10,11,12,13,19,20,21,22]
+      allowed_age_groups: [teen_18_24, young_25_34, adult_35_49]
+      allowed_city_tiers: [dhaka_core, dhaka_suburb, chittagong, other_metro]
+      allowed_tech_adoption: [app_native, hybrid]
+      income_curve:
+        teen_18_24: [middle]
+        young_25_34: [middle, upper_middle]
+        adult_35_49: [upper_middle, high]
+    doctor:
+      weight: 6
+      food_transport_mult: 0.8
+      grocery_mult: 1.0
+      entertainment_mult: 0.5
+      education_mult: 1.5
+      template_tags: [canteen, quick_meal, pharmacy]
+      hours_peak: [7,8,12,13,20,21]
+      allowed_age_groups: [young_25_34, adult_35_49, middle_50_64]
+      allowed_city_tiers: [dhaka_core, dhaka_suburb, chittagong, other_metro, small_town]
+      allowed_tech_adoption: [app_native, hybrid, traditional]
+      income_curve:
+        young_25_34: [middle, upper_middle]
+        adult_35_49: [upper_middle, high]
+        middle_50_64: [upper_middle, high]
+    teacher:
+      weight: 7
+      food_transport_mult: 0.7
+      grocery_mult: 1.3
+      entertainment_mult: 0.6
+      education_mult: 1.8
+      template_tags: [book, stationery, local, bus]
+      hours_peak: [7,8,14,15,19,20]
+      allowed_age_groups: [young_25_34, adult_35_49, middle_50_64]
+      allowed_city_tiers: [dhaka_core, dhaka_suburb, chittagong, other_metro, small_town, rural]
+      allowed_tech_adoption: [app_native, hybrid, traditional]
+      income_curve:
+        young_25_34: [low, middle]
+        adult_35_49: [middle]
+        middle_50_64: [middle]
+    businessman:
+      weight: 10
+      food_transport_mult: 2.0
+      grocery_mult: 0.3
+      entertainment_mult: 2.5
+      travel_mult: 3.0
+      shopping_mult: 2.0
+      template_tags: [premium, hotel, flight, client]
+      hours_peak: [9,10,11,13,14,19,20,21,22]
+      allowed_age_groups: [young_25_34, adult_35_49, middle_50_64]
+      allowed_city_tiers: [dhaka_core, dhaka_suburb, chittagong, other_metro, small_town]
+      allowed_tech_adoption: [app_native, hybrid, traditional]
+      income_curve:
+        young_25_34: [middle, upper_middle]
+        adult_35_49: [high]
+        middle_50_64: [high]
+    student:
+      weight: 15
+      food_transport_mult: 0.8
+      grocery_mult: 0.4
+      entertainment_mult: 1.2
+      education_mult: 2.0
+      template_tags: [cheap, street_food, bus, campus]
+      hours_peak: [8,9,12,13,16,17,18,22,23]
+      allowed_age_groups: [teen_18_24, young_25_34]
+      allowed_city_tiers: [dhaka_core, dhaka_suburb, chittagong, other_metro, small_town, rural]
+      allowed_tech_adoption: [app_native, hybrid, traditional]
+      income_curve:
+        teen_18_24: [low]
+        young_25_34: [low, middle]
+    govt_employee:
+      weight: 5
+      food_transport_mult: 0.7
+      grocery_mult: 1.2
+      entertainment_mult: 0.5
+      template_tags: [canteen, bus, local, cheap]
+      hours_peak: [8,9,12,13,17,18]
+      allowed_age_groups: [young_25_34, adult_35_49, middle_50_64]
+      allowed_city_tiers: [dhaka_core, dhaka_suburb, chittagong, other_metro, small_town, rural]
+      allowed_tech_adoption: [app_native, hybrid, traditional]
+      income_curve:
+        young_25_34: [low, middle]
+        adult_35_49: [middle]
+        middle_50_64: [middle]
+    freelancer:
+      weight: 8
+      food_transport_mult: 1.1
+      grocery_mult: 1.0
+      entertainment_mult: 1.0
+      template_tags: [cafe, coworking, app, online]
+      hours_peak: [10,11,12,14,15,16,20,21,22,23]
+      allowed_age_groups: [teen_18_24, young_25_34, adult_35_49, middle_50_64]
+      allowed_city_tiers: [dhaka_core, dhaka_suburb, chittagong, other_metro]
+      allowed_tech_adoption: [app_native, hybrid]
+      income_curve:
+        teen_18_24: [low, middle]
+        young_25_34: [middle]
+        adult_35_49: [middle, upper_middle]
+        middle_50_64: [middle, upper_middle]
+    shop_owner:
+      weight: 8
+      food_transport_mult: 0.6
+      grocery_mult: 1.5
+      entertainment_mult: 0.4
+      template_tags: [bazaar, wholesale, local, cash]
+      hours_peak: [8,9,13,14,15,20,21]
+      allowed_age_groups: [young_25_34, adult_35_49, middle_50_64]
+      allowed_city_tiers: [dhaka_core, dhaka_suburb, chittagong, other_metro, small_town, rural]
+      allowed_tech_adoption: [app_native, hybrid, traditional]
+      income_curve:
+        young_25_34: [low, middle]
+        adult_35_49: [middle]
+        middle_50_64: [middle]
+    driver:
+      weight: 7
+      allowed_genders: [male]
+      food_transport_mult: 1.8
+      grocery_mult: 1.0
+      entertainment_mult: 0.3
+      template_tags: [fuel, street, bike, cheap]
+      hours_peak: [6,7,8,12,13,20,21,22]
+      allowed_age_groups: [teen_18_24, young_25_34, adult_35_49, middle_50_64]
+      allowed_city_tiers: [dhaka_core, dhaka_suburb, chittagong, other_metro, small_town, rural]
+      allowed_tech_adoption: [hybrid, traditional]
+      income_curve:
+        teen_18_24: [low]
+        young_25_34: [low, middle]
+        adult_35_49: [middle]
+        middle_50_64: [middle]
+    banker:
+      weight: 7
+      food_transport_mult: 0.9
+      grocery_mult: 0.8
+      entertainment_mult: 1.0
+      template_tags: [premium, cafe, app, online]
+      hours_peak: [8,9,12,13,19,20,21]
+      allowed_age_groups: [young_25_34, adult_35_49, middle_50_64]
+      allowed_city_tiers: [dhaka_core, dhaka_suburb, chittagong, other_metro, small_town]
+      allowed_tech_adoption: [app_native, hybrid, traditional]
+      income_curve:
+        young_25_34: [middle, upper_middle]
+        adult_35_49: [upper_middle]
+        middle_50_64: [upper_middle, high]
+    housewife:
+      weight: 10
+      allowed_genders: [female]
+      food_transport_mult: 0.5
+      grocery_mult: 2.5
+      entertainment_mult: 0.4
+      shopping_mult: 1.8
+      template_tags: [bazaar, kitchen, family, local]
+      hours_peak: [9,10,11,14,15,16,19,20]
+      allowed_age_groups: [young_25_34, adult_35_49, middle_50_64]
+      allowed_city_tiers: [dhaka_core, dhaka_suburb, chittagong, other_metro, small_town, rural]
+      allowed_tech_adoption: [app_native, hybrid, traditional]
+      income_curve:
+        young_25_34: [low, middle]
+        adult_35_49: [middle]
+        middle_50_64: [middle]
+    retired:
+      weight: 5
+      food_transport_mult: 0.4
+      grocery_mult: 1.5
+      entertainment_mult: 0.6
+      health_mult: 2.5
+      template_tags: [local, cheap, pharmacy, park]
+      hours_peak: [8,9,10,11,12,14,15,16]
+      allowed_age_groups: [middle_50_64, senior_65_plus]
+      allowed_city_tiers: [dhaka_core, dhaka_suburb, chittagong, other_metro, small_town, rural]
+      allowed_tech_adoption: [hybrid, traditional]
+      income_curve:
+        middle_50_64: [low, middle]
+        senior_65_plus: [low]
+
+  # ── Income Tier (4 values) ──
+  income_tier:
+    low:
+      weight: 25
+      amount_mult: 0.4
+      rent_cap: 8000
+      travel_freq: 0.1
+    middle:
+      weight: 45
+      amount_mult: 0.8
+      rent_cap: 20000
+      travel_freq: 0.3
+    upper_middle:
+      weight: 22
+      amount_mult: 1.3
+      rent_cap: 50000
+      travel_freq: 0.7
+    high:
+      weight: 8
+      amount_mult: 2.5
+      rent_cap: 100000
+      travel_freq: 1.5
+
+  # ── Family Type (5 values) ──
+  family_type:
+    single:
+      weight: 35
+      grocery_mult: 0.4
+      utility_mult: 0.4
+      rent_mult: 0.6
+      education_mult: 0.0
+    couple:
+      weight: 25
+      grocery_mult: 0.8
+      utility_mult: 0.8
+      rent_mult: 1.0
+      education_mult: 0.0
+    family_kids:
+      weight: 30
+      grocery_mult: 1.5
+      utility_mult: 1.5
+      rent_mult: 1.3
+      education_mult: 2.0
+    joint_family:
+      weight: 7
+      grocery_mult: 2.5
+      utility_mult: 2.0
+      rent_mult: 1.8
+      education_mult: 1.0
+    shared_flat:
+      weight: 3
+      grocery_mult: 0.5
+      utility_mult: 0.5
+      rent_mult: 0.4
+      education_mult: 0.0
+
+  # ── Religion (4 values, matches seasonal_periods religion field) ──
+  religion:
+    muslim:
+      weight: 70
+      eid_template_boost: true
+      ramadan_pattern: true
+      dietary: halal
+    hindu:
+      weight: 18
+      durga_puja_boost: true
+      diwali_boost: true
+      dietary: mixed_veg
+    buddhist:
+      weight: 7
+      buddha_purnima_boost: true
+      dietary: mixed
+    christian:
+      weight: 5
+      christmas_boost: true
+      easter_boost: true
+      dietary: mixed
+
+  # ── Gender (2 values) ──
+  gender:
+    male:
+      weight: 50
+    female:
+      weight: 50
+
+  # ── Age Group (5 values) ──
+  # Each age has category multipliers and constrains which professions/income tiers are allowed
+  age_group:
+    teen_18_24:
+      weight: 20
+      entertainment_mult: 1.5
+      education_mult: 2.0
+      health_mult: 0.3
+      travel_mult: 0.3
+      housing_mult: 0.2
+      grocery_mult: 0.4
+      allowed_family_types: [single, joint_family, shared_flat]
+      allowed_lifestyles: [student_life, urban_professional, social_extrovert, homebody_introvert]
+      allowed_transport_modes: [rideshare_user, public_transport, walk_bicycle, bike_owner]
+    young_25_34:
+      weight: 30
+      dining_out_mult: 1.5
+      entertainment_mult: 1.3
+      travel_mult: 1.5
+      housing_mult: 1.0
+      education_mult: 0.5
+      allowed_family_types: [single, couple, family_kids, joint_family, shared_flat]
+      allowed_lifestyles: [urban_professional, social_extrovert, homebody_introvert, student_life, fitness_enthusiast]
+      allowed_transport_modes: [car_owner, bike_owner, rideshare_user, public_transport, walk_bicycle]
+    adult_35_49:
+      weight: 30
+      grocery_mult: 1.5
+      housing_mult: 1.3
+      education_mult: 1.5
+      health_mult: 1.5
+      transport_mult: 1.2
+      allowed_family_types: [single, couple, family_kids, joint_family]
+      allowed_lifestyles: [family_centered, urban_professional, social_extrovert, frugal_saver, fitness_enthusiast]
+      allowed_transport_modes: [car_owner, bike_owner, rideshare_user, public_transport]
+    middle_50_64:
+      weight: 15
+      health_mult: 2.0
+      travel_mult: 1.5
+      education_mult: 0.5
+      entertainment_mult: 0.6
+      housing_mult: 0.8
+      allowed_family_types: [single, couple, family_kids, joint_family]
+      allowed_lifestyles: [family_centered, frugal_saver, homebody_introvert, urban_professional]
+      allowed_transport_modes: [car_owner, rideshare_user, public_transport, walk_bicycle]
+    senior_65_plus:
+      weight: 5
+      health_mult: 3.0
+      transport_mult: 0.5
+      entertainment_mult: 0.4
+      dining_out_mult: 0.4
+      grocery_mult: 0.6
+      education_mult: 0.1
+      allowed_family_types: [single, couple, joint_family]
+      allowed_lifestyles: [frugal_saver, homebody_introvert, family_centered]
+      allowed_transport_modes: [car_owner, public_transport, walk_bicycle]
+
+  # ── City Tier (6 values) ──
+  city_tier:
+    dhaka_core:
+      weight: 30
+      venue_pool: dhaka_venues
+      allowed_transport_modes: [car_owner, bike_owner, rideshare_user, public_transport, walk_bicycle]
+    dhaka_suburb:
+      weight: 15
+      venue_pool: dhaka_suburbs
+      allowed_transport_modes: [car_owner, bike_owner, rideshare_user, public_transport, walk_bicycle]
+    chittagong:
+      weight: 12
+      venue_pool: ctg_venues
+      allowed_transport_modes: [car_owner, bike_owner, rideshare_user, public_transport, walk_bicycle]
+    other_metro:
+      weight: 18
+      venue_pool: metro_venues
+      allowed_transport_modes: [car_owner, bike_owner, rideshare_user, public_transport, walk_bicycle]
+    small_town:
+      weight: 17
+      venue_pool: small_venues
+      allowed_transport_modes: [car_owner, bike_owner, public_transport, walk_bicycle]
+    rural:
+      weight: 8
+      venue_pool: rural_venues
+      allowed_transport_modes: [bike_owner, public_transport, walk_bicycle]
+
+  # ── Lifestyle (7 values) ──
+  lifestyle:
+    urban_professional:
+      weight: 20
+      dining_out_mult: 1.8
+      weekend_spike: 1.5
+      online_shopping_mult: 2.0
+      cafe_mult: 2.0
+      app_mult: 2.0
+    family_centered:
+      weight: 25
+      dining_out_mult: 0.4
+      weekend_spike: 1.2
+      grocery_mult: 1.5
+      entertainment_mult: 0.3
+      kids_items_mult: 2.0
+    student_life:
+      weight: 18
+      dining_out_mult: 1.0
+      weekend_spike: 1.0
+      entertainment_mult: 1.5
+      education_mult: 1.5
+    frugal_saver:
+      weight: 12
+      dining_out_mult: 0.2
+      weekend_spike: 0.5
+      shopping_mult: 0.3
+      entertainment_mult: 0.2
+    social_extrovert:
+      weight: 10
+      dining_out_mult: 2.5
+      weekend_spike: 3.0
+      entertainment_mult: 3.0
+      travel_mult: 2.0
+      group_expense_mult: 2.0
+    homebody_introvert:
+      weight: 10
+      dining_out_mult: 0.3
+      weekend_spike: 0.5
+      entertainment_mult: 1.5
+      online_sub_mult: 2.0
+      delivery_mult: 2.0
+    fitness_enthusiast:
+      weight: 5
+      dining_out_mult: 0.5
+      grocery_mult: 0.6
+      health_mult: 3.0
+      supplement_mult: 3.0
+      transport_mult: 1.5
+
+  # ── Transport Mode (5 values) ──
+  transport_mode:
+    car_owner:
+      weight: 10
+      fuel_ratio: 0.6
+      rideshare_ratio: 0.1
+      bus_ratio: 0.05
+      bike_ratio: 0.1
+      parking_ratio: 0.15
+    bike_owner:
+      weight: 25
+      fuel_ratio: 0.5
+      rideshare_ratio: 0.05
+      bus_ratio: 0.1
+      bike_ratio: 0.3
+      parking_ratio: 0.05
+    rideshare_user:
+      weight: 35
+      fuel_ratio: 0.0
+      rideshare_ratio: 0.65
+      bus_ratio: 0.15
+      bike_ratio: 0.1
+      parking_ratio: 0.1
+    public_transport:
+      weight: 25
+      fuel_ratio: 0.0
+      rideshare_ratio: 0.1
+      bus_ratio: 0.7
+      bike_ratio: 0.15
+      parking_ratio: 0.05
+    walk_bicycle:
+      weight: 5
+      fuel_ratio: 0.0
+      rideshare_ratio: 0.05
+      bus_ratio: 0.05
+      bike_ratio: 0.9
+      parking_ratio: 0.0
+
+  # ── Spending Personality (6 values) ──
+  spending_personality:
+    planned_budgeter:
+      weight: 25
+      amount_round_to: 50
+      recurring_chance: 0.30
+      impulse_chance: 0.02
+    impulse_buyer:
+      weight: 12
+      amount_round_to: 0
+      recurring_chance: 0.05
+      impulse_chance: 0.25
+    minimalist:
+      weight: 15
+      amount_round_to: 100
+      recurring_chance: 0.20
+      impulse_chance: 0.03
+      shopping_mult: 0.3
+      entertainment_mult: 0.3
+    experience_seeker:
+      weight: 13
+      amount_round_to: 0
+      recurring_chance: 0.05
+      impulse_chance: 0.18
+      travel_mult: 2.5
+      entertainment_mult: 2.0
+      dining_out_mult: 1.8
+    convenience_spender:
+      weight: 20
+      amount_round_to: 0
+      recurring_chance: 0.08
+      impulse_chance: 0.15
+      delivery_mult: 3.0
+      rideshare_mult: 2.5
+      app_mult: 3.0
+    bargain_hunter:
+      weight: 15
+      amount_round_to: 0
+      recurring_chance: 0.12
+      impulse_chance: 0.05
+      discount_tag_chance: 0.30
+      bazaar_ratio: 0.8
+
+  # ── Tech Adoption (3 values) ──
+  tech_adoption:
+    app_native:
+      weight: 35
+      foodpanda_ratio: 0.7
+      cash_ratio: 0.1
+      online_shopping_ratio: 0.8
+      subscription_chance: 0.6
+    hybrid:
+      weight: 40
+      foodpanda_ratio: 0.3
+      cash_ratio: 0.5
+      online_shopping_ratio: 0.4
+      subscription_chance: 0.3
+    traditional:
+      weight: 25
+      foodpanda_ratio: 0.05
+      cash_ratio: 0.9
+      online_shopping_ratio: 0.1
+      subscription_chance: 0.05
+
+# ─── User Assignment Strategy ───
+user_assignment:
+  power_user_ratio: 0.20    # 20% of users are power users
+  power_user_expense_share: 0.60  # they generate 60% of expenses
+  inactive_member_chance: 0.05    # 5% of group members are removed
+  pending_member_chance: 0.03     # 3% of group members are pending
+
+# ─── Note Shape Weights (must sum to 100) ───
+note_shapes:
+  template_standard: 27
+  template_bangla: 12
+  receipt_style: 8
+  receipt_bangla: 3
+  recurring_clone: 8
+  short_abbrev: 7
+  vendor_only: 5
+  single_word: 5
+  combined_multi: 5
+  emotional_opinion: 3
+  ambiguous: 2
+  generic_fallback: 7
+
+# ─── Budget Scenarios ───
+budget_scenarios:
+  - name: "well_budgeted"
+    ratio: 0.40
+    range: [1.0, 1.3]
+  - name: "tight_budget"
+    ratio: 0.25
+    range: [0.7, 0.95]
+  - name: "projected_exceed"
+    ratio: 0.15
+    range: [0.8, 1.0]
+  - name: "very_loose"
+    ratio: 0.10
+    range: [2.0, 3.0]
+  - name: "barely_under"
+    ratio: 0.10
+    range: [0.5, 0.7]
+
+# ─── Personality-specific scenario overrides ───
+# Each spending_personality can skew the scenario ratios differently
+personality_scenario_overrides:
+  planned_budgeter:
+    well_budgeted: 0.65
+    tight_budget: 0.15
+    projected_exceed: 0.05
+    very_loose: 0.10
+    barely_under: 0.05
+  impulse_buyer:
+    well_budgeted: 0.15
+    tight_budget: 0.45
+    projected_exceed: 0.15
+    very_loose: 0.15
+    barely_under: 0.10
+  minimalist:
+    well_budgeted: 0.70
+    tight_budget: 0.10
+    projected_exceed: 0.05
+    very_loose: 0.10
+    barely_under: 0.05
+  experience_seeker:
+    well_budgeted: 0.25
+    tight_budget: 0.15
+    projected_exceed: 0.15
+    very_loose: 0.10
+    barely_under: 0.35
+  convenience_spender:
+    well_budgeted: 0.20
+    tight_budget: 0.40
+    projected_exceed: 0.15
+    very_loose: 0.15
+    barely_under: 0.10
+  bargain_hunter:
+    well_budgeted: 0.20
+    tight_budget: 0.10
+    projected_exceed: 0.05
+    very_loose: 0.50
+    barely_under: 0.15
+
+# ─── Tagged budget descriptions ───
+# 10-20% of contexts get one of these as an additional description-tagged budget
+tagged_budget_descriptions:
+  - "Shopping buffer"
+  - "Travel fund"
+  - "Emergency fund"
+  - "Gift budget"
+  - "Savings goal"
+  - "Subscription pool"
+  - "Home maintenance"
+  - "Pet care"
+  - "Medical buffer"
+  - "Education fund"
+
+# ─── Salary Day Spending Spikes ───
+# Bangladesh salary disbursement: 1st, 5th, 10th, 25th
+salary_day_weights:
+  days: [1, 5, 10, 25]
+  weight_multiplier: 2.0
+  spread_days: 3
+  affected_categories: [Shopping, Groceries, Food & Dining, Entertainment]
+
+# ─── Ramadan Pattern (Approximate Gregorian Dates) ───
+ramadan_pattern:
+  period_2024:
+    start: "2024-03-12"
+    end: "2024-04-10"
+  period_2025:
+    start: "2025-03-02"
+    end: "2025-03-31"
+  period_2026:
+    start: "2026-02-20"
+    end: "2026-03-20"
+  weight_multipliers:
+    iftar_hours:
+      Food_Dining: 3.0
+      hours: [17, 18, 19]
+    daytime_hours:
+      Food_Dining: 0.3
+      hours: [6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
+    seheri_hours:
+      Food_Dining: 1.5
+      hours: [3, 4, 5]
+    overall:
+      Groceries: 1.5
+      Entertainment: 0.3
+      Shopping: 1.3
+
+# ─── Spending Velocity Profiles ───
+velocity_profiles:
+  front_loaded: {ratio: 0.40}   # spends most early in month
+  even:         {ratio: 0.30}   # uniform daily spending
+  back_loaded:  {ratio: 0.20}   # spends more at month-end
+  spikey:       {ratio: 0.10}   # irregular bursts

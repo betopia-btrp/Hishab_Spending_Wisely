@@ -17,7 +17,8 @@ import {
   User as UserIcon,
   LogOut,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Shield
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAppContext } from '@/contexts/AppContext';
@@ -33,7 +34,7 @@ interface SidebarProps {
 
 export default function Sidebar({ activeTab, onTabChange, collapsed, setCollapsed }: SidebarProps) {
   const { currentContext, availableContexts, switchContext } = useAppContext();
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
 
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -41,6 +42,10 @@ export default function Sidebar({ activeTab, onTabChange, collapsed, setCollapse
     { id: 'budgets', label: 'Budgets', icon: Target },
     { id: 'reminders', label: 'Reminders', icon: Bell },
   ];
+
+  if (user?.is_admin) {
+    menuItems.push({ id: 'admin', label: 'Admin', icon: Shield });
+  }
 
   return (
     <aside 
@@ -68,15 +73,7 @@ export default function Sidebar({ activeTab, onTabChange, collapsed, setCollapse
 
       <div className="flex-1 overflow-y-auto py-6 px-4 custom-scrollbar">
         {/* Navigation Tutorial Tooltip */}
-        {!collapsed && availableContexts.length > 0 && (
-          <div className="mb-6 p-4 bg-emerald-50 rounded-2xl border border-emerald-100 relative overflow-hidden group">
-            <div className="absolute top-0 right-0 p-1">
-              <div className="w-2 h-2 bg-[#636B2F] rounded-full animate-ping" />
-            </div>
-            <p className="text-[10px] font-black text-[#636B2F] uppercase tracking-widest mb-1">Navigation Guide</p>
-            <p className="text-xs text-slate-600 leading-tight">Switch between personal and group ledgers here to isolate spending analytics.</p>
-          </div>
-        )}
+        {!collapsed && availableContexts.length > 0 && null}
 
         <label className={cn("text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4 block px-2", collapsed && "sr-only")}>
           Workspace
