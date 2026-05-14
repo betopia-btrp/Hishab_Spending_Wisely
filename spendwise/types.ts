@@ -114,13 +114,29 @@ export interface AdminDashboardData {
     premium_users: number;
     free_users: number;
     estimated_mrr: number;
+    total_spent: number;
+    avg_expense: number;
   };
   expenses_trend: { month: string; count: number; total: number }[];
+  user_growth: { month: string; signups: number }[];
   category_distribution: { name: string; count: number; percentage: number }[];
   daily_spending_30d: { date: string; total: number }[];
+  day_of_week: { day_name: string; dow: number; expenses: number; total_spent: number }[];
+  split_type_distribution: { split_type: string; count: number }[];
+  settled_distribution: { status: string; count: number }[];
+  hourly_activity: { hour: number; count: number }[];
+  avg_ticket_by_category: { name: string; avg_amount: number; sample_size: number }[];
+  most_budgeted_categories: { name: string; budget_count: number; avg_budget_amount: number }[];
+  top_expenses: { note: string; amount: number; category_name: string; user_name: string; expense_date: string }[];
+  budget_vs_actual: { name: string; budgeted: number; spent: number }[];
+  forecast_accuracy: { name: string; avg_projected: number; avg_actual: number; samples: number }[];
   top_contexts: { id: string; name: string; type: string; member_count: number; expense_count: number; total_spent: number }[];
   top_users: { id: string; name: string; expense_count: number; total_spent: number }[];
-  user_growth: { month: string; signups: number }[];
+  top_users_by_activity: { id: string; name: string; expenses_logged: number }[];
+  prolific_joiners: { name: string; context_count: number }[];
+  context_type_distribution: { type: string; count: number }[];
+  group_sizes: { bucket: string; count: number }[];
+  context_trend: { month: string; type: string; contexts_created: number }[];
   recent_activity: { id: string; amount: number; note: string; expense_date: string; category_name: string; user_name: string; context_name: string; created_at: string }[];
 }
 
