@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { motion } from 'motion/react';
-import { Receipt, X, Check, Loader2, Users, Sparkles } from 'lucide-react';
+import { Receipt, X, Check, Loader2, Users, Sparkles, Camera } from 'lucide-react';
 import api from '@/lib/axios';
 import { formatCurrency } from '@/lib/utils';
 import { Category, ContextMember, ContextType } from '@/types';
@@ -40,6 +40,43 @@ export default function NewExpenseModal({ contextId, onClose, onSuccess }: NewEx
   const isGroup = currentContext?.type === ContextType.GROUP;
   const [splitType, setSplitType] = useState<SplitType>(isGroup ? 'equal' : 'none');
   const [memberSplits, setMemberSplits] = useState<MemberSplit[]>([]);
+
+  const [scanning, setScanning] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleScanReceipt = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setScanning(true);
+    setError('');
+    try {
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const base64 = (reader.result as string).split(',')[1];
+        const mimeType = file.type;
+        const res = await api.post('/expenses/scan-receipt', { image: base64, mime_type: mimeType });
+        const data = res.data;
+        if (data.total) setAmount(String(data.total));
+        if (data.date) setDate(data.date);
+        if (data.merchant) {
+          let noteText = data.merchant;
+          if (data.items?.length > 0) {
+            noteText += ' - ' + data.items.map((i: any) => i.name).join(', ');
+          }
+          setNote(noteText);
+        }
+        if (data.category_hint) {
+          const match = categories.find(c => c.name.toLowerCase().includes(data.category_hint.toLowerCase()));
+          if (match) { setCategoryId(match.id); setSuggestedCategory(match.id); }
+        }
+        setScanning(false);
+      };
+      reader.readAsDataURL(file);
+    } catch (err: any) {
+      setError(err?.response?.data?.message || 'Failed to scan receipt');
+      setScanning(false);
+    }
+  };
 
   const [suggesting, setSuggesting] = useState(false);
   const [suggestedCategory, setSuggestedCategory] = useState('');
@@ -216,12 +253,24 @@ export default function NewExpenseModal({ contextId, onClose, onSuccess }: NewEx
             <div className="w-14 h-14 bg-emerald-50 rounded-2xl flex items-center justify-center text-[#636B2F]">
               <Receipt size={28} />
             </div>
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-slate-50 rounded-xl transition text-slate-400 font-bold"
-            >
-              ✕
-            </button>
+            <div className="flex items-center gap-2">
+              <input type="file" accept="image/*" capture="environment" ref={fileInputRef} onChange={handleScanReceipt} className="hidden" />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={scanning}
+                className="p-2 hover:bg-slate-50 rounded-xl transition text-slate-400 font-bold"
+                title="Scan Receipt"
+              >
+                {scanning ? <Loader2 size={20} className="animate-spin" /> : <Camera size={20} />}
+              </button>
+              <button
+                onClick={onClose}
+                className="p-2 hover:bg-slate-50 rounded-xl transition text-slate-400 font-bold"
+              >
+                ✕
+              </button>
+            </div>
           </div>
 
           <h3 className="text-2xl font-black text-slate-900 mb-2 tracking-tight">Log New Expense</h3>
@@ -252,6 +301,7 @@ export default function NewExpenseModal({ contextId, onClose, onSuccess }: NewEx
                     className="w-full pl-10 pr-5 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-lg font-black text-slate-900 outline-none focus:ring-4 focus:ring-[#636B2F]/10 focus:border-[#636B2F] transition-all"
                   />
                 </div>
+
               </div>
 
               <div>

@@ -158,6 +158,7 @@ export interface BacktestResult {
   target_year: number;
   cutoff_day: number;
   results: {
+    context_id: string;
     category_name: string;
     budget: number;
     projected: number;

@@ -17,6 +17,12 @@ DB_CONFIG = {
     "dbname": "spendwise", "user": "spendwise", "password": "spendwise",
 }
 
+def patch_db_config(args):
+    if args.db_host:
+        DB_CONFIG["host"] = args.db_host
+    if args.db_port:
+        DB_CONFIG["port"] = int(args.db_port)
+
 BASE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, BASE)
 from linear_fallback import linear_projection
@@ -113,11 +119,23 @@ def forecast_for_user(cursor, user_id, dry_run=False):
         hist_rows = cursor.fetchall()
         hist_n_days = len(hist_rows)
 
-        # Compute historical daily average from 90-day window
+        # Compute recency-weighted historical daily average
+        # Buckets: last 30 days (weight 3), days 31-60 (weight 2), days 61-90 (weight 1)
         historical_daily_avg = None
         if hist_rows:
-            lookback_total = sum(float(r[1]) for r in hist_rows)
-            historical_daily_avg = lookback_total / 90  # per calendar day avg
+            cutoff_30 = today - timedelta(days=30)
+            cutoff_60 = today - timedelta(days=60)
+            weighted_total = 0.0
+            for r in hist_rows:
+                d = r[0]
+                if d >= cutoff_30:
+                    weight = 3
+                elif d >= cutoff_60:
+                    weight = 2
+                else:
+                    weight = 1
+                weighted_total += float(r[1]) * weight
+            historical_daily_avg = weighted_total / (30 * 3 + 30 * 2 + 30)
 
         # Forecast — train on last 90 days, predict remaining this month
         if hist_n_days >= 7:
@@ -167,46 +185,6 @@ def forecast_for_user(cursor, user_id, dry_run=False):
                   f"budget={budget_amount:>8.2f}")
 
     return results
-
-
-def run():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--user-id", required=True)
-    parser.add_argument("--dry-run", action="store_true")
-    args = parser.parse_args()
-
-    conn = psycopg2.connect(**DB_CONFIG)
-    cursor = conn.cursor()
-    results = forecast_for_user(cursor, args.user_id, args.dry_run)
-
-    if not args.dry_run and results:
-        # Delete old forecasts for these contexts/month/year to avoid NULL duplicates
-        ctx_months = set((r["context_id"], r["month"], r["year"]) for r in results)
-        for ctx_id, m, y in ctx_months:
-            cursor.execute(
-                "DELETE FROM ml_forecasts WHERE context_id = %s AND month = %s AND year = %s",
-                (ctx_id, m, y)
-            )
-
-        insert_sql = """
-            INSERT INTO ml_forecasts
-                (id, context_id, category_id, month, year,
-                 projected_amount, budget_amount, spent_so_far, alert_tier,
-                 created_at, updated_at)
-            VALUES (gen_random_uuid(), %s, %s, %s, %s,
-                    %s, %s, %s, %s, NOW(), NOW())
-        """
-        data = [(r["context_id"], r["category_id"], r["month"], r["year"],
-                 r["projected_amount"], r["budget_amount"],
-                 r["spent_so_far"], r["alert_tier"]) for r in results]
-        cursor.executemany(insert_sql, data)
-        conn.commit()
-
-        alerts = [r for r in results if r["alert_tier"]]
-        print(f"User {args.user_id[:8]}.. : {len(results)} forecasts, "
-              f"{len(alerts)} alerts")
-
-    conn.close()
 
 
 def backtest_for_user(cursor, user_id, target_month, target_year, cutoff_day):
@@ -355,8 +333,19 @@ def backtest_for_user(cursor, user_id, target_month, target_year, cutoff_day):
 
         historical_daily_avg = None
         if hist_rows:
-            lookback_total = sum(float(r[1]) for r in hist_rows)
-            historical_daily_avg = lookback_total / 90
+            cutoff_30 = today - timedelta(days=30)
+            cutoff_60 = today - timedelta(days=60)
+            weighted_total = 0.0
+            for r in hist_rows:
+                d = r[0]
+                if d >= cutoff_30:
+                    weight = 3
+                elif d >= cutoff_60:
+                    weight = 2
+                else:
+                    weight = 1
+                weighted_total += float(r[1]) * weight
+            historical_daily_avg = weighted_total / (30 * 3 + 30 * 2 + 30)
 
         if hist_n_days >= 7:
             try:
@@ -441,8 +430,11 @@ def run():
     parser.add_argument("--target-month", type=int, help="Month to backtest")
     parser.add_argument("--target-year", type=int, help="Year to backtest")
     parser.add_argument("--cutoff-day", type=int, default=13, help="Day to use as cutoff for backtest")
+    parser.add_argument("--db-host", default=None, help="Database host")
+    parser.add_argument("--db-port", default=None, help="Database port")
     args = parser.parse_args()
 
+    patch_db_config(args)
     conn = psycopg2.connect(**DB_CONFIG)
     cursor = conn.cursor()
 

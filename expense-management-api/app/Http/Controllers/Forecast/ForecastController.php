@@ -78,16 +78,21 @@ class ForecastController extends Controller
         }
 
         // Run Python script for this user
-        $pythonBin = base_path('../venv/bin/python3');
+        $pythonBin = env('PYTHON_BIN', base_path('../venv/bin/python3'));
+        $dbHost = env('ML_FORECAST_DB_HOST', '127.0.0.1');
+        $dbPort = env('ML_FORECAST_DB_PORT', '5435');
+        $stderrLog = storage_path('logs/forecast-run.log');
         $cmd = sprintf(
-            'cd %s && %s %s --user-id %s 2>&1',
+            'cd %s && %s %s --user-id %s --db-host %s --db-port %s 2>%s',
             escapeshellarg(dirname($scriptPath)),
             escapeshellcmd($pythonBin),
             escapeshellarg($scriptPath),
-            escapeshellarg($user->id)
+            escapeshellarg($user->id),
+            escapeshellarg($dbHost),
+            escapeshellarg($dbPort),
+            escapeshellarg($stderrLog)
         );
         $output = shell_exec($cmd);
-        Log::debug("Forecast output for user {$user->id}: " . trim($output ?? ''));
 
         if ($output === null) {
             return response()->json(['message' => 'Forecast execution failed.'], 500);
@@ -209,21 +214,33 @@ class ForecastController extends Controller
             return response()->json(['message' => 'Forecast script not found.'], 500);
         }
 
-        $pythonBin = base_path('../venv/bin/python3');
+        $pythonBin = env('PYTHON_BIN', base_path('../venv/bin/python3'));
+        $dbHost = env('ML_FORECAST_DB_HOST', '127.0.0.1');
+        $dbPort = env('ML_FORECAST_DB_PORT', '5435');
+        $stderrLog = storage_path('logs/forecast-backtest.log');
         $cmd = sprintf(
-            'cd %s && %s %s --user-id %s --target-month %d --target-year %d --cutoff-day %d 2>&1',
+            'cd %s && %s %s --user-id %s --target-month %d --target-year %d --cutoff-day %d --db-host %s --db-port %s 2>%s',
             escapeshellarg(dirname($scriptPath)),
             escapeshellcmd($pythonBin),
             escapeshellarg($scriptPath),
             escapeshellarg($user->id),
             $month,
             $year,
-            $cutoffDay
+            $cutoffDay,
+            escapeshellarg($dbHost),
+            escapeshellarg($dbPort),
+            escapeshellarg($stderrLog)
         );
         $output = shell_exec($cmd);
 
         if ($output === null) {
             return response()->json(['message' => 'Backtest execution failed.'], 500);
+        }
+
+        $decoded = json_decode($output, true);
+        if (!$decoded || !isset($decoded['backtest'])) {
+            Log::error("Backtest parse error for user {$user->id}. stderr in {$stderrLog}");
+            return response()->json(['message' => 'Invalid backtest output.'], 500);
         }
 
         $decoded = json_decode($output, true);

@@ -77,6 +77,7 @@ Route::middleware("auth:api")->group(function () {
         Route::get("/", [ExpenseController::class, "index"]);
         Route::post("/", [ExpenseController::class, "store"]);
         Route::post("/suggest-category", [ExpenseController::class, "suggestCategory"]);
+        Route::post("/scan-receipt", [ExpenseController::class, "scanReceipt"]);
         Route::get("/{expense}", [ExpenseController::class, "show"]);
         Route::put("/{expense}", [ExpenseController::class, "update"]);
         Route::delete("/{expense}", [ExpenseController::class, "destroy"]);
