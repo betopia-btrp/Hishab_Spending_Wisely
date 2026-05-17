@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { motion } from 'motion/react';
-import { Receipt, X, Check, Loader2, Users } from 'lucide-react';
+import { Receipt, X, Check, Loader2, Users, Sparkles } from 'lucide-react';
 import api from '@/lib/axios';
 import { formatCurrency } from '@/lib/utils';
 import { Category, ContextMember, ContextType } from '@/types';
@@ -40,6 +40,29 @@ export default function NewExpenseModal({ contextId, onClose, onSuccess }: NewEx
   const isGroup = currentContext?.type === ContextType.GROUP;
   const [splitType, setSplitType] = useState<SplitType>(isGroup ? 'equal' : 'none');
   const [memberSplits, setMemberSplits] = useState<MemberSplit[]>([]);
+
+  const [suggesting, setSuggesting] = useState(false);
+  const [suggestedCategory, setSuggestedCategory] = useState('');
+  const lastSuggestedNote = useRef('');
+
+  const suggestCategory = useCallback(async (text: string) => {
+    const trimmed = text.trim();
+    if (!trimmed || trimmed.length < 3 || trimmed === lastSuggestedNote.current) return;
+    lastSuggestedNote.current = trimmed;
+    setSuggesting(true);
+    try {
+      const res = await api.post('/expenses/suggest-category', { note: trimmed });
+      const predictions = res.data.predictions;
+      if (predictions && predictions.length > 0) {
+        setSuggestedCategory(predictions[0].category_id);
+        setCategoryId(predictions[0].category_id);
+      }
+    } catch {
+      // silent fail
+    } finally {
+      setSuggesting(false);
+    }
+  }, []);
 
   useEffect(() => {
     if (!isGroup) return;
@@ -243,11 +266,27 @@ export default function NewExpenseModal({ contextId, onClose, onSuccess }: NewEx
               </div>
 
               <div className="col-span-2">
-                <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-2">Category</label>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-xs font-black text-slate-500 uppercase tracking-widest">Category</label>
+                  {suggesting && (
+                    <span className="text-[10px] text-slate-400 font-bold flex items-center gap-1">
+                      <Loader2 size={10} className="animate-spin" /> AI suggesting...
+                    </span>
+                  )}
+                  {!suggesting && suggestedCategory && (
+                    <span className="text-[10px] text-emerald-600 font-bold flex items-center gap-1">
+                      <Sparkles size={10} /> AI suggested
+                    </span>
+                  )}
+                </div>
                 <select
                   value={categoryId}
-                  onChange={(e) => setCategoryId(e.target.value)}
-                  className="w-full px-5 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-slate-900 font-bold outline-none focus:ring-4 focus:ring-[#636B2F]/10 focus:border-[#636B2F] transition-all"
+                  onChange={(e) => { setCategoryId(e.target.value); setSuggestedCategory(''); lastSuggestedNote.current = ''; }}
+                  className={`w-full px-5 py-3 rounded-2xl text-slate-900 font-bold outline-none transition-all ${
+                    suggestedCategory && categoryId === suggestedCategory
+                      ? 'bg-emerald-50 border-2 border-emerald-300 focus:ring-4 focus:ring-emerald-200'
+                      : 'bg-slate-50 border border-slate-100 focus:ring-4 focus:ring-[#636B2F]/10 focus:border-[#636B2F]'
+                  }`}
                 >
                   <option value="">Select category (optional)</option>
                   {categories.map((cat) => (
@@ -263,6 +302,7 @@ export default function NewExpenseModal({ contextId, onClose, onSuccess }: NewEx
                 <textarea
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
+                  onBlur={() => suggestCategory(note)}
                   placeholder="Add any additional details..."
                   rows={2}
                   className="w-full px-5 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-slate-900 font-bold outline-none focus:ring-4 focus:ring-[#636B2F]/10 focus:border-[#636B2F] transition-all resize-none"

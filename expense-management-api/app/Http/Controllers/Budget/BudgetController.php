@@ -7,10 +7,12 @@ use App\Http\Requests\Budget\StoreBudgetRequest;
 use App\Http\Requests\Budget\UpdateBudgetRequest;
 use App\Models\Budget;
 use App\Models\ContextMember;
+use App\Models\Expense;
 use App\Services\BudgetService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 /**
  * @OA\Tag(
@@ -189,5 +191,38 @@ class BudgetController extends Controller
             403,
             'Only group admins can manage group budgets.'
         );
+    }
+
+    /**
+     * GET /api/budgets/aggregated?context_id=xxx
+     * Return all budgets summed by category across all months.
+     */
+    public function aggregated(Request $request): JsonResponse
+    {
+        $request->validate([
+            'context_id' => ['required', 'uuid', 'exists:contexts,id'],
+        ]);
+
+        $this->ensureActiveMember($request->context_id);
+
+        $budgets = Budget::with('category:id,name,icon')
+            ->where('context_id', $request->context_id)
+            ->where('amount', '>', 0)
+            ->get()
+            ->groupBy(fn($b) => $b->category_id ?: '__overall__');
+
+        $result = [];
+        foreach ($budgets as $key => $group) {
+            $first = $group->first();
+            $totalBudget = $group->sum('amount');
+            $result[] = [
+                'id'        => $first->id,
+                'category'  => $first->category,
+                'budget'    => (float) $totalBudget,
+                'count'     => $group->count(),
+            ];
+        }
+
+        return response()->json(['budgets' => $result]);
     }
 }

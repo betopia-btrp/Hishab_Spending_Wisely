@@ -8,8 +8,10 @@ use App\Http\Requests\Expense\StoreExpenseRequest;
 use App\Http\Requests\Expense\UpdateExpenseRequest;
 use App\Models\ContextMember;
 use App\Models\Expense;
+use App\Services\CategorySuggestionService;
 use App\Services\ExpenseService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 /**
@@ -18,7 +20,23 @@ use Illuminate\Support\Facades\Auth;
 
 class ExpenseController extends Controller
 {
-    public function __construct(private ExpenseService $expenseService) {}
+    public function __construct(
+        private ExpenseService $expenseService,
+        private CategorySuggestionService $categorySuggestion,
+    ) {}
+
+    /**
+     * POST /api/expenses/suggest-category
+     * AI-powered category suggestion from expense note text.
+     */
+    public function suggestCategory(Request $request): JsonResponse
+    {
+        $request->validate(['note' => 'required|string|max:255']);
+
+        $predictions = $this->categorySuggestion->suggest($request->note);
+
+        return response()->json(['predictions' => $predictions]);
+    }
 
     /**
      * GET /api/expenses?context_id=xxx

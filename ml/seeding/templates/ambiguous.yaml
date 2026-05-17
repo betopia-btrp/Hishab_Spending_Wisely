@@ -1,0 +1,170 @@
+# Cross-category ambiguous notes.
+# These notes could plausibly belong to multiple categories,
+# but are seeded with a specific one to test model robustness.
+# ~2% of expenses use these notes with deliberate cross-category assignment.
+
+notes:
+  - note: "coffee at North End Coffee"
+    seed_category: "Entertainment"
+    alternate: "Food & Dining"
+    reason: "cafe hangout — not a meal"
+
+  - note: "bus ticket Dhaka to Sylhet"
+    seed_category: "Travel"
+    alternate: "Transportation"
+    reason: "inter-city trip, not a daily commute"
+
+  - note: "bus ticket Mirpur to Motijheel"
+    seed_category: "Transportation"
+    alternate: "Travel"
+    reason: "city commute, not a trip"
+
+  - note: "books from Nilket"
+    seed_category: "Education"
+    alternate: "Shopping"
+    reason: "academic books"
+
+  - note: "books from book fair"
+    seed_category: "Entertainment"
+    alternate: "Education"
+    reason: "leisure reading at an event"
+
+  - note: "medicine for mother"
+    seed_category: "Others"
+    alternate: "Health & Medical"
+    reason: "care gift for family"
+
+  - note: "medicine for myself"
+    seed_category: "Health & Medical"
+    alternate: "Others"
+    reason: "personal medical expense"
+
+  - note: "car servicing and wash"
+    seed_category: "Transportation"
+    alternate: "Shopping"
+    reason: "vehicle maintenance"
+
+  - note: "hand sanitizer and masks"
+    seed_category: "Shopping"
+    alternate: "Health & Medical"
+    reason: "general purchase, not a medical visit"
+
+  - note: "Spotify premium subscription"
+    seed_category: "Entertainment"
+    alternate: "Utilities"
+    reason: "entertainment subscription service"
+
+  - note: "Netflix"
+    seed_category: "Entertainment"
+    alternate: "Utilities"
+    reason: "streaming entertainment"
+
+  - note: "gym supplements and protein"
+    seed_category: "Health & Medical"
+    alternate: "Shopping"
+    reason: "health related supplies"
+
+  - note: "camera accessories"
+    seed_category: "Entertainment"
+    alternate: "Shopping"
+    reason: "photography hobby gear"
+
+  - note: "painting supplies"
+    seed_category: "Entertainment"
+    alternate: "Education"
+    reason: "art hobby materials"
+
+  - note: "electricity bill payment for flat"
+    seed_category: "Rent & Housing"
+    alternate: "Utilities"
+    reason: "housing related payment"
+
+  - note: "gas bill"
+    seed_category: "Utilities"
+    alternate: "Rent & Housing"
+    reason: "utility payment"
+
+  - note: "groceries from Agora"
+    seed_category: "Groceries"
+    alternate: "Shopping"
+    reason: "store purchase could be either"
+
+  - note: "clothes for office"
+    seed_category: "Shopping"
+    alternate: "Others"
+    reason: "work-related clothing"
+
+  - note: "birthday gift for friend"
+    seed_category: "Others"
+    alternate: "Shopping"
+    reason: "gift expense"
+
+  - note: "dinner at hotel"
+    seed_category: "Food & Dining"
+    alternate: "Travel"
+    reason: "could be during a trip"
+
+  - note: "launch ticket Dhaka to Barisal"
+    seed_category: "Travel"
+    alternate: "Transportation"
+    reason: "ferry/launch is travel-class"
+
+  - note: "rickshaw to office"
+    seed_category: "Transportation"
+    alternate: "Travel"
+    reason: "daily commute"
+
+  - note: "Eid shopping at market"
+    seed_category: "Shopping"
+    alternate: "Others"
+    reason: "festival shopping"
+
+  - note: "mobile phone recharge"
+    seed_category: "Utilities"
+    alternate: "Shopping"
+    reason: "digital goods purchase"
+
+  - note: "haircut"
+    seed_category: "Personal Care"
+    alternate: "Others"
+    reason: "personal grooming"
+
+  - note: "lab test and doctor visit"
+    seed_category: "Health & Medical"
+    alternate: "Others"
+    reason: "medical expense"
+
+  - note: "IELTS course fee"
+    seed_category: "Education"
+    alternate: "Others"
+    reason: "exam prep course"
+
+  - note: "gym membership"
+    seed_category: "Health & Medical"
+    alternate: "Entertainment"
+    reason: "fitness subscription"
+
+  - note: "pet food and supplies"
+    seed_category: "Others"
+    alternate: "Shopping"
+    reason: "pet care supplies"
+
+  - note: "online shopping"
+    seed_category: "Shopping"
+    alternate: "Others"
+    reason: "generic shopping note"
+
+  - note: "baby food and diapers"
+    seed_category: "Shopping"
+    alternate: "Groceries"
+    reason: "baby essentials"
+
+  - note: "office canteen"
+    seed_category: "Food & Dining"
+    alternate: "Others"
+    reason: "workplace meal"
+
+  - note: "parking at office"
+    seed_category: "Transportation"
+    alternate: "Others"
+    reason: "parking is transport cost"

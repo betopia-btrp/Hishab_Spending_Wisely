@@ -15,6 +15,8 @@ import Dashboard from '@/components/Dashboard';
 import Expenses from '@/components/(Expenses)/Expenses';
 import Balances from '@/components/(Balances)/Balances';
 import Budgets from '@/components/(Budgets)/Budgets';
+import ForecastDashboard from '@/components/(Forecast)/ForecastDashboard';
+import AdminDashboard from '@/components/AdminDashboard';
 import LandingPage from '@/components/LandingPage';
 import BudgetModal from '@/components/(Budgets)/BudgetModal';
 import NewContext from '@/components/(NewContext)/NewContext';
@@ -153,7 +155,9 @@ function AppContent() {
       case 'expenses': return <Expenses />;
       case 'balances': return <Balances />;
       case 'budgets': return <Budgets />;
+      case 'forecast': return <ForecastDashboard />;
       case 'reminders': return <Reminders />;
+      case 'admin': return <AdminDashboard />;
       case 'new-context': return <NewContext onComplete={handleContextCreationComplete} />;
       default: return <Dashboard />;
     }

@@ -12,13 +12,24 @@ use Illuminate\Validation\ValidationException;
 
 class ExpenseService
 {
-    public function __construct(private BalanceService $balanceService) {}
+    public function __construct(
+        private BalanceService $balanceService,
+        private ?CategorySuggestionService $categorySuggestion = null,
+    ) {}
 
     // ─────────────────────────────────────────────────────────────────────
     // FR-EX-01: Log Expense
     // ─────────────────────────────────────────────────────────────────────
     public function create(User $user, array $data): Expense
     {
+        // Auto-suggest category if not provided but note exists
+        if (empty($data['category_id']) && !empty($data['note'])) {
+            $suggestions = $this->getCategorySuggestion()->suggest($data['note'], 1);
+            if (!empty($suggestions)) {
+                $data['category_id'] = $suggestions[0]['category_id'];
+            }
+        }
+
         return DB::transaction(function () use ($user, $data) {
             $expense = Expense::create([
                 'context_id'   => $data['context_id'],
@@ -196,5 +207,10 @@ class ExpenseService
                 'percentage'   => $split['percentage'],
             ]);
         }
+    }
+
+    private function getCategorySuggestion(): CategorySuggestionService
+    {
+        return $this->categorySuggestion ??= app(CategorySuggestionService::class);
     }
 }

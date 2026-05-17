@@ -1,0 +1,255 @@
+# City-tier venue pools for location-aware note generation.
+# Each city tier has different available restaurants, stores, cafes, etc.
+
+dhaka_venues:
+  restaurant:
+    - KFC
+    - Pizza Hut
+    - Nando's
+    - North End
+    - Sultan's Dine
+    - Kacchi Bhai
+    - Haji Biryani
+    - Star Kabab
+    - Panshi
+    - Cafe Mango
+    - Xing King
+    - Kung Fu Express
+    - Domino's
+    - Sushi Cafe
+    - Mr. Burger
+    - Takeout
+    - Food Court
+    - Mad Chef
+    - Bhoj Company
+    - Hotel Intercontinental
+    - Shake Shack
+    - Thai Emerald
+    - Bellissimo
+    - Secret Recipe
+    - Cheez
+    - Khanas
+    - BBQ Tonight
+    - Bukhara
+    - Izumi
+    - The Manhattan
+    - The Patio
+    - Tarka
+  cafe:
+    - Starbucks
+    - Coffee World
+    - North End Coffee
+    - The Coffee Bean
+    - Joe's Cafe
+    - Barista
+    - Gloria Jeans
+    - Artisan Cafe
+    - Brew House
+    - Nook Cafe
+    - Misty Cafe
+    - The Reading Room
+    - Crimson Cup
+    - Kiva Han
+  store:
+    - Agora
+    - Shwapno
+    - Meena Bazar
+    - Unimart
+    - Pran-RFL
+    - Almas
+    - Kazi & Kazi
+    - Daily Shopping
+    - Super Shop
+    - Trust
+    - Mollah Super Store
+    - Aarong
+    - Jamuna Future Park
+    - Bashundhara City
+    - Shimanto Square
+    - Metro
+  cinema:
+    - Star Cineplex
+    - Blockbuster Cinemas
+    - Sony Square
+    - Lion Cinemas
+    - Cinepolis
+    - Jamuna Future Park cinema
+    - Shyamoli Cinema
+  salon:
+    - Salon 360
+    - Style & Grace
+    - The Barber Shop
+    - Dashing
+    - Parlour 360
+    - Gents Salon
+    - Beauty Center
+    - Fresh Cuts
+    - Persona
+    - TONI&GUY
+  takeout_place:
+    - KFC
+    - Pizza Hut
+    - Kacchi Bhai
+    - Sultan's Dine
+    - Haji Biryani
+    - Star Kabab
+    - Chinese takeout
+    - local biryani shop
+    - shawarma stand
+    - burger joint
+    - Thai takeaway
+    - Pizza Roma
+    - Mad Chef
+  playground:
+    - Fantasy Kingdom
+    - Wonderland
+    - Nandan Park
+    - National Zoo
+
+dhaka_suburbs:
+  restaurant:
+    - KFC
+    - Pizza Hut
+    - local restaurant
+    - biryani house
+    - Chinese corner
+    - Panshi
+    - Star Kabab
+    - beef bhuna ghor
+    - tehari shop
+    - local hotel
+    - paratha house
+  cafe:
+    - local tea stall
+    - coffee shop
+    - bakery
+    - North End Coffee
+  store:
+    - Agora
+    - Shwapno
+    - local grocery
+    - bazaar
+    - Super Shop
+    - Daily Shopping
+    - Meena Bazar
+  cinema: []
+  salon:
+    - local barber
+    - beauty parlor
+    - gents salon
+  takeout_place:
+    - KFC
+    - local biryani shop
+    - shawarma stand
+    - burger joint
+    - Chinese takeout
+
+ctg_venues:
+  restaurant:
+    - KFC
+    - Pizza Hut
+    - Nando's
+    - Mezzan
+    - Barcode
+    - Ambrosia
+    - Peninsula
+    - Silver Spoon
+    - Handi
+    - Meridian
+    - Zaman Hotel
+    - local restaurant
+  cafe:
+    - Coffee World
+    - North End Coffee
+    - Barista
+    - local tea stall
+  store:
+    - Agora
+    - Shwapno
+    - Aarong
+    - Sanmar
+    - New Market
+    - Almas
+  cinema:
+    - Silver Screen
+    - Cinepolis
+  salon:
+    - Salon 360
+    - local barber
+  takeout_place:
+    - KFC
+    - Pizza Hut
+    - local biryani shop
+    - shawarma stand
+
+metro_venues:
+  restaurant:
+    - KFC
+    - Pizza Hut
+    - local restaurant
+    - biryani house
+    - Chinese corner
+    - Star Kabab
+  cafe:
+    - local tea stall
+    - coffee shop
+    - bakery
+  store:
+    - Agora
+    - Shwapno
+    - local grocery
+    - bazaar
+  cinema: []
+  salon:
+    - local barber
+    - beauty parlor
+  takeout_place:
+    - local biryani shop
+    - shawarma stand
+    - Chinese takeout
+
+small_venues:
+  restaurant:
+    - local restaurant
+    - biryani house
+    - hotel restaurant
+    - tea stall
+    - paratha shop
+    - beef bhuna ghor
+  cafe:
+    - tea stall
+    - bakery
+    - coffee shop
+  store:
+    - local grocery
+    - bazaar
+    - kacha bazar
+    - wholesale market
+  cinema: []
+  salon:
+    - local barber
+    - beauty parlor
+  takeout_place:
+    - local biryani shop
+    - shawarma stand
+    - local snack shop
+
+rural_venues:
+  restaurant:
+    - tea stall
+    - hotel restaurant
+    - local eatery
+    - village market food stall
+  cafe:
+    - tea stall
+  store:
+    - local grocery
+    - village bazaar
+    - kacha bazar
+    - weekly haat
+  cinema: []
+  salon:
+    - village barber
+  takeout_place:
+    - local snack shop
+    - tea stall

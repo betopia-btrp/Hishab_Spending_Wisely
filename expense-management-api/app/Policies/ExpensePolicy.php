@@ -5,6 +5,7 @@ namespace App\Policies;
 use App\Models\Expense;
 use App\Models\User;
 use Illuminate\Auth\Access\Response;
+use App\Models\ContextMember;
 
 class ExpensePolicy
 {

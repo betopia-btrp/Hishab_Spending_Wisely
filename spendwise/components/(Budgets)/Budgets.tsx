@@ -5,8 +5,8 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
-import { Target, Plus, Edit2, Trash2, TrendingDown, Wallet, Tag, Calendar } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { Target, Plus, Edit2, Trash2, TrendingDown, Wallet, Tag, Calendar, AlertTriangle, TrendingUp, RefreshCw, Sparkles, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { formatCurrency, cn } from '@/lib/utils';
 import api from '@/lib/axios';
@@ -45,6 +45,9 @@ interface BudgetCard {
   status: string;
   description?: string;
   category?: { id: string; name: string; icon: string };
+  // Forecast data (from ml_forecasts)
+  projected_amount?: number;
+  alert_tier?: string | null;
 }
 
 export default function Budgets() {
@@ -56,11 +59,15 @@ export default function Budgets() {
   const [editingBudget, setEditingBudget] = useState<BudgetCard | null>(null);
   const [formData, setFormData] = useState<BudgetFormData>({ amount: '', description: '' });
   const [saving, setSaving] = useState(false);
+  const [forecasting, setForecasting] = useState(false);
+  const [suggesting, setSuggesting] = useState(false);
+  const [suggestedCategory, setSuggestedCategory] = useState('');
+  const lastSuggestedNote = useRef('');
   const [currentMonth] = useState(new Date().getMonth() + 1);
   const [currentYear] = useState(new Date().getFullYear());
 
-  const hasBaseBudget = budgets.some(b => !b.category_id && !b.description);
-  const additionalBudgets = budgets.filter(b => b.category_id || b.description);
+  const hasBaseBudget = budgets.some(b => !b.category?.id && !b.description);
+  const additionalBudgets = budgets.filter(b => b.category?.id || b.description);
 
   const fetchBudgets = async () => {
     if (!currentContext) return;
@@ -81,7 +88,7 @@ export default function Budgets() {
       const budgetList: BudgetCard[] = rawBudgetList.map((b: any) => ({
         id: b.id,
         context_id: b.context_id || currentContext.id,
-        category_id: b.category_id || null,
+        category_id: b.category?.id || b.category_id || null,
         month: Number(b.month) || currentMonth,
         year: Number(b.year) || currentYear,
         amount: Number(b.budget) || 0,
@@ -96,6 +103,43 @@ export default function Budgets() {
       }));
 
       setBudgets(budgetList);
+
+      // Always run fresh forecast, then merge results
+      setForecasting(true);
+      try {
+        await api.post('/forecasts/run');
+        const forecastRes = await api.get('/forecasts', {
+          params: {
+            context_id: currentContext.id,
+            month: currentMonth,
+            year: currentYear,
+          },
+        });
+        const forecastData = forecastRes.data?.forecasts || [];
+        if (forecastData.length > 0) {
+          setBudgets(prev => prev.map(b => {
+            const catId = b.category?.id || null;
+            const match = forecastData.find((f: any) => {
+              const fCatId = f.category_id || null;
+              if (catId === null && fCatId === null) return true;
+              if (catId && fCatId && catId === fCatId) return true;
+              return false;
+            });
+            if (match) {
+              return {
+                ...b,
+                projected_amount: Number(match.projected_amount),
+                alert_tier: match.alert_tier || null,
+              };
+            }
+            return b;
+          }));
+        }
+      } catch (err) {
+        // Forecast data is optional
+      } finally {
+        setForecasting(false);
+      }
     } catch (err: any) {
       console.error('[Budgets] Error:', err.response?.data || err.message);
     } finally {
@@ -114,6 +158,38 @@ export default function Budgets() {
       setCategories([]);
     }
   };
+
+  const runForecast = async () => {
+    if (!currentContext) return;
+    setForecasting(true);
+    try {
+      await api.post('/forecasts/run');
+      await fetchBudgets();
+    } catch (err) {
+      console.error('[Forecast] Error:', err);
+    } finally {
+      setForecasting(false);
+    }
+  };
+
+  const suggestCategory = useCallback(async (text: string) => {
+    const trimmed = text.trim();
+    if (!trimmed || trimmed.length < 3 || trimmed === lastSuggestedNote.current) return;
+    lastSuggestedNote.current = trimmed;
+    setSuggesting(true);
+    try {
+      const res = await api.post('/expenses/suggest-category', { note: trimmed });
+      const predictions = res.data.predictions;
+      if (predictions && predictions.length > 0) {
+        setSuggestedCategory(predictions[0].category_id);
+        setFormData(prev => ({ ...prev, category_id: predictions[0].category_id }));
+      }
+    } catch {
+      // silent fail
+    } finally {
+      setSuggesting(false);
+    }
+  }, []);
 
   useEffect(() => {
     fetchBudgets();
@@ -206,165 +282,144 @@ export default function Budgets() {
   }, 0);
   const overallPercentage = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
 
+  // Sort budgets by urgency: overspend → on_track_exceed → warning → ok
+  const sortedBudgets = [...budgets].sort((a, b) => {
+    const order: Record<string, number> = { overspend: 0, on_track_exceed: 1, early_warning: 2, on_track: 3 };
+    const aRank = order[a.alert_tier || a.status || 'on_track'] ?? 4;
+    const bRank = order[b.alert_tier || b.status || 'on_track'] ?? 4;
+    return aRank - bRank;
+  });
+
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">Budget Management</h2>
-          <p className="text-sm text-slate-500 font-medium flex items-center gap-2">
-            <Calendar size={14} />
+          <h2 className="text-xl font-bold text-slate-900">Budgets</h2>
+          <p className="text-sm text-slate-500">
             {MONTH_NAMES[currentMonth - 1]} {currentYear}
           </p>
         </div>
-        <button
-          onClick={() => openForm()}
-          className="bg-[#636B2F] text-white px-6 py-3 rounded-2xl font-extrabold shadow-lg shadow-emerald-200 hover:opacity-90 active:scale-95 transition-all flex items-center justify-center gap-2"
-        >
-          <Plus size={18} />
-          {hasBaseBudget ? 'Add Additional Budget' : 'Set Monthly Budget'}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={runForecast}
+            disabled={forecasting}
+            className="text-sm text-slate-500 hover:text-slate-700 px-3 py-2 rounded-lg hover:bg-slate-100 transition flex items-center gap-1.5"
+          >
+            <RefreshCw size={14} className={forecasting ? 'animate-spin' : ''} />
+            {forecasting ? 'Forecasting...' : 'Refresh'}
+          </button>
+          <button
+            onClick={() => openForm()}
+            className="text-sm font-medium text-white bg-slate-900 hover:bg-slate-800 px-4 py-2 rounded-lg transition"
+          >
+            + Set Budget
+          </button>
+        </div>
       </div>
 
       {loading ? (
-        <div className="bg-white p-12 rounded-[2rem] border border-slate-100 text-center">
-          <p className="text-slate-400 font-bold animate-pulse">Loading budgets...</p>
-        </div>
+        <div className="text-center py-12 text-slate-400 text-sm">Loading budgets...</div>
       ) : budgets.length === 0 ? (
-        <div className="bg-white p-12 rounded-[2rem] border border-slate-100 flex flex-col items-center justify-center text-center shadow-xl shadow-slate-100">
-          <div className="w-20 h-20 bg-emerald-50 text-[#636B2F] rounded-2xl flex items-center justify-center mb-6">
-            <Target size={40} />
-          </div>
-          <h3 className="text-xl font-black text-slate-900 mb-3">No Budgets Set</h3>
-          <p className="text-slate-500 mb-6 max-w-sm">Set a monthly budget to track your spending and stay on target.</p>
+        <div className="text-center py-16">
+          <Target size={36} className="mx-auto text-slate-300 mb-4" />
+          <h3 className="text-lg font-semibold text-slate-700 mb-2">No budgets set</h3>
+          <p className="text-sm text-slate-500 mb-6">Set a monthly budget to track your spending.</p>
           <button
             onClick={() => openForm()}
-            className="bg-slate-900 text-white px-6 py-3 rounded-2xl font-extrabold shadow-lg hover:bg-slate-800 transition-all"
+            className="text-sm font-medium text-white bg-slate-900 hover:bg-slate-800 px-5 py-2.5 rounded-lg transition"
           >
             Create Your First Budget
           </button>
         </div>
       ) : (
-        <div className="space-y-6">
-          <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-xl shadow-slate-100">
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Total Monthly Budget</span>
-              <span className={cn(
-                "text-xs font-black px-3 py-1 rounded-full",
-                overallPercentage > 90 ? "bg-rose-100 text-rose-600" :
-                overallPercentage > 70 ? "bg-amber-100 text-amber-600" :
-                "bg-emerald-100 text-emerald-600"
-              )}>
-                {overallPercentage.toFixed(0)}% used
-              </span>
-            </div>
-            <div className="flex items-end justify-between mb-4">
-              <div>
-                <p className="text-4xl font-black text-slate-900 tracking-tighter">{formatCurrency(totalSpent)}</p>
-                <p className="text-sm text-slate-400 font-medium">Spent of {formatCurrency(totalBudget)}</p>
-              </div>
-              <p className={cn(
-                "text-xl font-black",
-                totalBudget - totalSpent >= 0 ? "text-emerald-600" : "text-rose-600"
-              )}>
-                {formatCurrency(totalBudget - totalSpent)} remaining
-              </p>
-            </div>
-            <div className="w-full h-4 bg-slate-100 rounded-full overflow-hidden border border-slate-50">
+        <div className="space-y-3">
+          {sortedBudgets.map((budget) => {
+            const pct = budget.percentage || (budget.budget > 0 ? (budget.spent / budget.budget) * 100 : 0);
+            const isOver = (budget.alert_tier === 'overspend' || pct >= 100);
+            const isWarning = (budget.alert_tier === 'on_track_exceed' || (pct >= 80 && pct < 100));
+
+            return (
               <div
-                className={cn(
-                  "h-full rounded-full transition-all duration-500",
-                  overallPercentage > 90 ? "bg-rose-500" :
-                  overallPercentage > 70 ? "bg-amber-500" :
-                  "bg-[#636B2F]"
-                )}
-                style={{ width: `${Math.min(overallPercentage, 100)}%` }}
-              />
-            </div>
-          </div>
+                key={budget.id}
+                className="bg-white rounded-xl border border-slate-200 overflow-hidden hover:shadow-sm transition-shadow"
+              >
+                <div className="flex">
+                  {/* Color strip */}
+                  <div className={cn(
+                    "w-1 shrink-0",
+                    isOver ? 'bg-rose-500' :
+                    isWarning ? 'bg-amber-400' :
+                    'bg-emerald-400'
+                  )} />
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-12 h-12 bg-emerald-50 rounded-xl flex items-center justify-center">
-                  <Target size={24} className="text-[#636B2F]" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-black text-slate-900">Base Monthly Budget</h3>
-                  <p className="text-xs text-slate-500">
-{budgets.filter(b => !b.category_id && !b.description).reduce((sum, b) => {
-                        const amt = b.budget ?? b.amount ?? 0;
-                        return sum + Number(amt);
-                      }, 0) > 0
-                        ? formatCurrency(budgets.filter(b => !b.category_id && !b.description).reduce((sum, b) => {
-                          const amt = b.budget ?? b.amount ?? 0;
-                          return sum + Number(amt);
-                        }, 0))
-                      : 'Not set'}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center justify-end">
-                <button
-                  onClick={() => openForm(budgets.find(b => !b.category_id && !b.description))}
-                  className="px-4 py-2 bg-slate-100 text-slate-600 text-sm font-bold rounded-xl hover:bg-slate-200 transition"
-                >
-                  Edit
-                </button>
-              </div>
-            </div>
-
-            <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm">
-              <div className="flex items-center gap-3 mb-4">
-                <Wallet size={20} className="text-slate-400" />
-                <h3 className="text-lg font-black text-slate-900">Additional Budgets</h3>
-                <span className="text-xs text-slate-400 font-medium">({additionalBudgets.length})</span>
-              </div>
-              {additionalBudgets.length > 0 ? (
-                <div className="space-y-3">
-                  {additionalBudgets.map((budget) => (
-                    <div
-                      key={budget.id}
-                      className="flex items-center justify-between p-3 bg-slate-50 rounded-xl hover:bg-slate-100 transition-colors group"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center">
-                          {budget.category ? (
-                            <span className="text-sm">{budget.category.icon}</span>
-                          ) : (
-                            <TrendingDown size={16} className="text-amber-600" />
-                          )}
+                  <div className="flex-1 p-4">
+                    <div className="flex items-start justify-between gap-4">
+                      {/* Left: name + description */}
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-semibold text-slate-900 text-sm">
+                            {budget.description || budget.category?.name || 'Overall Budget'}
+                          </h3>
+                          <span className={cn(
+                            "text-[11px] font-medium px-2 py-0.5 rounded-full",
+                            isOver ? 'bg-rose-50 text-rose-600' :
+                            isWarning ? 'bg-amber-50 text-amber-600' :
+                            'bg-emerald-50 text-emerald-600'
+                          )}>
+                            {isOver ? 'Exceeded' : isWarning ? 'At risk' : 'On track'}
+                          </span>
                         </div>
-                        <div>
-                          <p className="font-bold text-slate-900 text-sm">
-                            {budget.description || budget.category?.name || 'Budget'}
-                          </p>
-                          <p className="text-xs text-slate-500">
-                            {formatCurrency(budget.budget ?? budget.amount ?? 0)}
-                          </p>
-                        </div>
+                        {budget.category?.name && budget.description && (
+                          <p className="text-xs text-slate-400 mt-0.5">{budget.category.name}</p>
+                        )}
                       </div>
-                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button
-                          onClick={() => openForm(budget)}
-                          className="p-1.5 hover:bg-white rounded-lg transition"
-                        >
-                          <Edit2 size={14} className="text-slate-400" />
+
+                      {/* Right: actions */}
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button onClick={() => openForm(budget)} className="p-1.5 hover:bg-slate-100 rounded-lg transition">
+                          <Edit2 size={13} className="text-slate-400" />
                         </button>
-                        <button
-                          onClick={() => handleDelete(budget)}
-                          className="p-1.5 hover:bg-rose-50 rounded-lg transition"
-                        >
-                          <Trash2 size={14} className="text-rose-400" />
+                        <button onClick={() => handleDelete(budget)} className="p-1.5 hover:bg-rose-50 rounded-lg transition">
+                          <Trash2 size={13} className="text-rose-400" />
                         </button>
                       </div>
                     </div>
-                  ))}
+
+                    {/* Amounts row */}
+                    <div className="flex items-baseline gap-3 mt-3">
+                      <span className="text-lg font-semibold text-slate-900">{formatCurrency(budget.spent)}</span>
+                      <span className="text-sm text-slate-400">of {formatCurrency(budget.budget)}</span>
+                      {budget.projected_amount != null && budget.projected_amount > 0 && (
+                        <>
+                          <span className="text-slate-300 mx-1">→</span>
+                          <span className={cn(
+                            "text-sm font-medium",
+                            isOver ? 'text-rose-600' : isWarning ? 'text-amber-600' : 'text-slate-500'
+                          )}>
+                            projected {formatCurrency(budget.projected_amount)}
+                          </span>
+                        </>
+                      )}
+                    </div>
+
+                    {/* Progress bar */}
+                    <div className="w-full h-1.5 bg-slate-100 rounded-full mt-3 overflow-hidden">
+                      <div
+                        className={cn(
+                          "h-full rounded-full transition-all",
+                          isOver ? 'bg-rose-500' :
+                          isWarning ? 'bg-amber-400' :
+                          'bg-emerald-400'
+                        )}
+                        style={{ width: `${Math.min(pct, 100)}%` }}
+                      />
+                    </div>
+                  </div>
                 </div>
-              ) : (
-                <p className="text-sm text-slate-400 text-center py-4">No additional budgets added</p>
-              )}
-            </div>
-          </div>
+              </div>
+            );
+          })}
         </div>
       )}
 
@@ -420,15 +475,28 @@ export default function Budgets() {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-2">
-                      Description <span className="text-slate-300">(optional)</span>
-                    </label>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="block text-xs font-black text-slate-500 uppercase tracking-widest">
+                        Description <span className="text-slate-300">(optional)</span>
+                      </label>
+                      {suggesting && (
+                        <span className="text-[10px] text-slate-400 font-bold flex items-center gap-1">
+                          <Loader2 size={10} className="animate-spin" /> AI suggesting...
+                        </span>
+                      )}
+                      {!suggesting && suggestedCategory && (
+                        <span className="text-[10px] text-emerald-600 font-bold flex items-center gap-1">
+                          <Sparkles size={10} /> AI suggested
+                        </span>
+                      )}
+                    </div>
                     <div className="relative">
                       <Tag size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" />
                       <input
                         type="text"
                         value={formData.description}
                         onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                        onBlur={() => suggestCategory(formData.description)}
                         placeholder="e.g., Shopping buffer, Travel fund"
                         className="w-full pl-12 pr-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-slate-900 font-bold outline-none focus:ring-4 focus:ring-[#636B2F]/10 focus:border-[#636B2F] transition-all"
                       />
@@ -436,13 +504,19 @@ export default function Budgets() {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-2">
-                      Category <span className="text-slate-300">(optional)</span>
-                    </label>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="block text-xs font-black text-slate-500 uppercase tracking-widest">
+                        Category <span className="text-slate-300">(optional)</span>
+                      </label>
+                    </div>
                     <select
                       value={formData.category_id || ''}
-                      onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
-                      className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-slate-900 font-bold outline-none focus:ring-4 focus:ring-[#636B2F]/10 focus:border-[#636B2F] transition-all"
+                      onChange={(e) => { setFormData({ ...formData, category_id: e.target.value }); setSuggestedCategory(''); lastSuggestedNote.current = ''; }}
+                      className={`w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-slate-900 font-bold outline-none focus:ring-4 focus:ring-[#636B2F]/10 focus:border-[#636B2F] transition-all ${
+                        suggestedCategory && formData.category_id === suggestedCategory
+                          ? 'bg-emerald-50 border-2 border-emerald-300'
+                          : ''
+                      }`}
                     >
                       <option value="">No category (general budget)</option>
                       {categories.map((cat) => (
