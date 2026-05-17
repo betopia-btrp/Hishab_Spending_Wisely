@@ -8,15 +8,13 @@ use Illuminate\Support\Facades\Log;
 class CategorySuggestionService
 {
     protected string $modelPath;
-
-    protected string $cliPath;
-
+    protected string $pythonBin;
     protected array $labelMap;
 
     public function __construct()
     {
         $this->modelPath = storage_path('app/ml/autocategorize.ftz');
-        $this->cliPath = '/tmp/fastText/fasttext';
+        $this->pythonBin = env('PYTHON_BIN', base_path('../venv/bin/python3'));
         $this->labelMap = $this->buildLabelMap();
     }
 
@@ -32,15 +30,27 @@ class CategorySuggestionService
             return [];
         }
 
-        if (!file_exists($this->modelPath) || !file_exists($this->cliPath)) {
-            Log::warning('CategorySuggestion: model or CLI not found');
+        if (!file_exists($this->modelPath)) {
+            Log::warning('CategorySuggestion: model not found at ' . $this->modelPath);
             return [];
         }
 
-        $cmd = escapeshellcmd($this->cliPath) . ' predict '
-             . escapeshellarg($this->modelPath) . ' - ' . (int) $k;
+        $script = sprintf(
+            'import json, fasttext; '
+            . 'm = fasttext.load_model(%s); '
+            . 'labels, scores = m.predict(%s, k=%d); '
+            . 'print(json.dumps([{"label": l, "score": float(s)} for l, s in zip(labels, scores)]))',
+            json_encode($this->modelPath, JSON_UNESCAPED_SLASHES),
+            json_encode($note, JSON_UNESCAPED_SLASHES),
+            $k
+        );
 
-        $output = shell_exec('echo ' . escapeshellarg($note) . ' | ' . $cmd);
+        $cmd = sprintf(
+            '%s -c %s 2>/dev/null',
+            escapeshellcmd($this->pythonBin),
+            escapeshellarg($script)
+        );
+        $output = shell_exec($cmd);
 
         if ($output === null || $output === '') {
             return [];
@@ -51,14 +61,18 @@ class CategorySuggestionService
 
     protected function parseOutput(string $output): array
     {
-        $results = [];
-        $parts = preg_split('/\s+/', trim($output));
+        $decoded = json_decode($output, true);
+        if (!$decoded) {
+            return [];
+        }
 
-        foreach ($parts as $label) {
-            $label = trim($label);
-            if (empty($label)) continue;
+        $results = [];
+        foreach ($decoded as $item) {
+            $label = $item['label'] ?? '';
             if (isset($this->labelMap[$label])) {
-                $results[] = $this->labelMap[$label];
+                $result = $this->labelMap[$label];
+                $result['score'] = $item['score'] ?? 0;
+                $results[] = $result;
             }
         }
 
@@ -71,7 +85,6 @@ class CategorySuggestionService
         $map = [];
 
         foreach ($categories as $cat) {
-            // Must match Python labelize(): replace &→and, then spaces→underscores
             $name = str_replace(' & ', ' and ', $cat->name);
             $label = '__label__' . str_replace(
                 [' ', '-', '/'],
