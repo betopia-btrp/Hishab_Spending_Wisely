@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState, Fragment } from 'react';
-import { Plus, Search, Filter, Edit2, Trash2, Calendar, Users, ChevronRight, ChevronDown } from 'lucide-react';
-import { formatCurrency } from '@/lib/utils';
+import { useEffect, useState, Fragment, useCallback } from 'react';
+import { Plus, Search, Filter, Edit2, Trash2, Calendar, Users, ChevronRight, ChevronDown, X } from 'lucide-react';
+import { formatCurrency, cn } from '@/lib/utils';
 import api from '@/lib/axios';
 import { useAppContext } from '@/contexts/AppContext';
 import { Expense, Category } from '@/types';
@@ -18,13 +18,22 @@ export default function Expenses() {
   const [showModal, setShowModal] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [showDateFilter, setShowDateFilter] = useState(false);
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
 
-  const fetchData = async () => {
+  const hasDateFilter = dateFrom || dateTo;
+
+  const fetchData = useCallback(async () => {
     if (!currentContext) return;
     setLoading(true);
     try {
+      const params: Record<string, string> = { context_id: currentContext.id };
+      if (dateFrom) params.date_from = dateFrom;
+      if (dateTo) params.date_to = dateTo;
+
       const [expRes, catRes] = await Promise.all([
-        api.get(`/expenses?context_id=${currentContext.id}`),
+        api.get(`/expenses`, { params }),
         api.get(`/categories?context_id=${currentContext.id}`)
       ]);
       const expData = expRes.data.data || expRes.data;
@@ -36,11 +45,17 @@ export default function Expenses() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentContext, dateFrom, dateTo]);
 
   useEffect(() => {
     fetchData();
-  }, [currentContext]);
+  }, [fetchData]);
+
+  const clearDateFilter = () => {
+    setDateFrom('');
+    setDateTo('');
+    setShowDateFilter(false);
+  };
 
   const filteredExpenses = expenses.filter(e => 
     e.note?.toLowerCase().includes(search.toLowerCase()) ||
@@ -90,15 +105,55 @@ export default function Expenses() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <div className="flex gap-2 w-full lg:w-auto">
-          <button className="flex-1 lg:flex-none px-5 py-3 bg-white border border-slate-200 rounded-2xl text-sm font-bold flex items-center justify-center hover:bg-slate-50 shadow-sm transition-all text-slate-600">
-            <Calendar size={18} className="mr-2" />
-            Date Range
-          </button>
-          <button className="flex-1 lg:flex-none px-5 py-3 bg-white border border-slate-200 rounded-2xl text-sm font-bold flex items-center justify-center hover:bg-slate-50 shadow-sm transition-all text-slate-600">
-            <Filter size={18} className="mr-2" />
-            Filters
-          </button>
+        <div className="flex flex-col gap-2 w-full lg:w-auto">
+          <div className="flex gap-2">
+            <button
+              onClick={() => setShowDateFilter(!showDateFilter)}
+              className={cn(
+                "flex-1 lg:flex-none px-5 py-3 bg-white border rounded-2xl text-sm font-bold flex items-center justify-center hover:bg-slate-50 shadow-sm transition-all",
+                hasDateFilter
+                  ? "border-[#636B2F] text-[#636B2F] bg-emerald-50/50"
+                  : "border-slate-200 text-slate-600"
+              )}
+            >
+              <Calendar size={18} className="mr-2" />
+              {hasDateFilter ? "Date Range Active" : "Date Range"}
+              {hasDateFilter && (
+                <X
+                  size={14}
+                  className="ml-2 text-slate-400 hover:text-rose-500"
+                  onClick={(e) => { e.stopPropagation(); clearDateFilter(); }}
+                />
+              )}
+            </button>
+            <button className="flex-1 lg:flex-none px-5 py-3 bg-white border border-slate-200 rounded-2xl text-sm font-bold flex items-center justify-center hover:bg-slate-50 shadow-sm transition-all text-slate-600">
+              <Filter size={18} className="mr-2" />
+              Filters
+            </button>
+          </div>
+          {showDateFilter && (
+            <div className="flex items-center gap-3 p-3 bg-white border border-slate-200 rounded-2xl shadow-sm">
+              <div className="flex items-center gap-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">From</label>
+                <input
+                  type="date"
+                  value={dateFrom}
+                  onChange={(e) => setDateFrom(e.target.value)}
+                  className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#636B2F]/20 focus:border-[#636B2F]"
+                />
+              </div>
+              <span className="text-slate-300">—</span>
+              <div className="flex items-center gap-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">To</label>
+                <input
+                  type="date"
+                  value={dateTo}
+                  onChange={(e) => setDateTo(e.target.value)}
+                  className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#636B2F]/20 focus:border-[#636B2F]"
+                />
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

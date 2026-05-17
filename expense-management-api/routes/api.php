@@ -97,6 +97,7 @@ Route::middleware("auth:api")->group(function () {
 
     Route::prefix("budgets")->group(function () {
         Route::get("/", [BudgetController::class, "index"]);
+        Route::get("/aggregated", [BudgetController::class, "aggregated"]);
         Route::post("/", [BudgetController::class, "store"]);
         Route::put("/{budget}", [BudgetController::class, "update"]);
         Route::delete("/{budget}", [BudgetController::class, "destroy"]);
@@ -106,6 +107,7 @@ Route::middleware("auth:api")->group(function () {
         Route::get("/", [DashboardController::class, "index"]);
         Route::get("/chart", [DashboardController::class, "chart"]);
         Route::get("/activity", [DashboardController::class, "activity"]);
+        Route::get("/budget-history", [DashboardController::class, "budgetHistory"]);
     });
 
     Route::prefix("notifications")->group(function () {
@@ -119,8 +121,9 @@ Route::middleware("auth:api")->group(function () {
     });
 
     Route::prefix("forecasts")->group(function () {
-        Route::get("/",    [ForecastController::class, "index"]);
-        Route::post("/run", [ForecastController::class, "run"]);
+        Route::get("/",        [ForecastController::class, "index"]);
+        Route::post("/run",     [ForecastController::class, "run"]);
+        Route::post("/backtest", [ForecastController::class, "backtest"]);
     });
 
     Route::prefix('reminders')->group(function () {

@@ -10,6 +10,7 @@ import {
   Receipt, 
   Wallet, 
   Target, 
+  TrendingUp,
   Bell, 
   Settings, 
   Plus,
@@ -40,6 +41,7 @@ export default function Sidebar({ activeTab, onTabChange, collapsed, setCollapse
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'expenses', label: 'Expenses', icon: Receipt },
     { id: 'budgets', label: 'Budgets', icon: Target },
+    { id: 'forecast', label: 'Forecast', icon: TrendingUp },
     { id: 'reminders', label: 'Reminders', icon: Bell },
   ];
 

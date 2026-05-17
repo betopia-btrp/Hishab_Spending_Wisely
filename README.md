@@ -71,6 +71,39 @@ make logs     # Follow all logs
 make restart  # Restart API
 ```
 
+## ML / Forecast Setup
+
+The app uses Python ML models for spending forecasts and auto-categorization.
+
+```bash
+# From project root (Hishab_Spending_Wisely/)
+python3 -m venv venv
+source venv/bin/activate
+
+# Install dependencies
+pip install -r ml/requirements.txt
+pip install -r ml/forecast/requirements.txt
+
+# Install fastText CLI (for auto-categorization)
+mkdir -p /tmp/fastText && cd /tmp/fastText
+git clone https://github.com/facebookresearch/fastText.git .
+make
+cd -
+
+# Train auto-categorization model (run once after seeding)
+# This uses the existing expense data to train a FastText model
+python3 ml/auto_categorize/export.py
+```
+
+The forecast script (`ml/forecast/run.py`) runs automatically when you visit the Dashboard or Budgets tab. It uses Prophet (Facebook's time-series ML) to predict month-end spending per budget category based on the last 90 days of expense history.
+
+The auto-categorization model lives at `expense-management-api/storage/app/ml/autocategorize.ftz` and the fastText CLI is expected at `/tmp/fastText/fasttext`. When adding expenses, the app suggests a category based on the note text.
+
+### Troubleshooting
+
+- **Forecast returns old data or `{"predictions":[]}`** — Make sure the venv is activated and both `requirements.txt` files are installed. The PHP backend calls `venv/bin/python3` via a project-relative path (`base_path('../venv/bin/python3')`).
+- **Auto-categorization returns empty** — Run `python3 ml/auto_categorize/export.py` to generate the model file. Ensure `/tmp/fastText/fasttext` exists (see install step above).
+
 ## Environment Variables
 
 Edit `expense-management-api/.env` for:

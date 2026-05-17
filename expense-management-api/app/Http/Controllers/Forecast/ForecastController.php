@@ -78,9 +78,10 @@ class ForecastController extends Controller
         }
 
         // Run Python script for this user
-        $pythonBin = 'python3';
+        $pythonBin = base_path('../venv/bin/python3');
         $cmd = sprintf(
-            '%s %s --user-id %s 2>&1',
+            'cd %s && %s %s --user-id %s 2>&1',
+            escapeshellarg(dirname($scriptPath)),
             escapeshellcmd($pythonBin),
             escapeshellarg($scriptPath),
             escapeshellarg($user->id)
@@ -173,5 +174,64 @@ class ForecastController extends Controller
             'forecasts' => $forecasts,
             'new_notifications' => count($newNotifications),
         ]);
+    }
+
+    /**
+     * POST /api/forecasts/backtest
+     * Run forecast as if today were cutoff_day, compare with actual full-month spend.
+     */
+    public function backtest(Request $request): JsonResponse
+    {
+        $request->validate([
+            'context_id' => ['required', 'uuid', 'exists:contexts,id'],
+            'month'      => ['required', 'integer', 'between:1,12'],
+            'year'       => ['required', 'integer', 'min:2000', 'max:2100'],
+            'cutoff_day' => ['nullable', 'integer', 'min:1', 'max:28'],
+        ]);
+
+        $user = auth()->user();
+        $contextId = $request->input('context_id');
+        $month = (int) $request->input('month');
+        $year  = (int) $request->input('year');
+        $cutoffDay = (int) ($request->input('cutoff_day', 13));
+
+        $member = ContextMember::where('context_id', $contextId)
+            ->where('user_id', $user->id)
+            ->where('status', 'active')
+            ->first();
+
+        if (!$member) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
+        $scriptPath = base_path('../ml/forecast/run.py');
+        if (!file_exists($scriptPath)) {
+            return response()->json(['message' => 'Forecast script not found.'], 500);
+        }
+
+        $pythonBin = base_path('../venv/bin/python3');
+        $cmd = sprintf(
+            'cd %s && %s %s --user-id %s --target-month %d --target-year %d --cutoff-day %d 2>&1',
+            escapeshellarg(dirname($scriptPath)),
+            escapeshellcmd($pythonBin),
+            escapeshellarg($scriptPath),
+            escapeshellarg($user->id),
+            $month,
+            $year,
+            $cutoffDay
+        );
+        $output = shell_exec($cmd);
+
+        if ($output === null) {
+            return response()->json(['message' => 'Backtest execution failed.'], 500);
+        }
+
+        $decoded = json_decode($output, true);
+        if (!$decoded || !isset($decoded['backtest'])) {
+            Log::error("Backtest parse error for user {$user->id}: " . substr($output, 0, 500));
+            return response()->json(['message' => 'Invalid backtest output.'], 500);
+        }
+
+        return response()->json($decoded);
     }
 }

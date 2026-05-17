@@ -140,14 +140,56 @@ export interface AdminDashboardData {
   recent_activity: { id: string; amount: number; note: string; expense_date: string; category_name: string; user_name: string; context_name: string; created_at: string }[];
 }
 
+export type PeriodPreset = 'this_month' | 'last_month' | 'last_3_months' | 'this_year' | 'all_time';
+
+export interface PeriodConfig {
+  preset: PeriodPreset;
+  month?: number;
+  year?: number;
+  dateFrom?: string;
+  dateTo?: string;
+  label: string;
+  isSingleMonth: boolean;
+}
+
+export interface BacktestResult {
+  overall_mape: number | null;
+  target_month: number;
+  target_year: number;
+  cutoff_day: number;
+  results: {
+    category_name: string;
+    budget: number;
+    projected: number;
+    actual: number;
+    mape: number | null;
+    alert_tier: string | null;
+    daily_breakdown: { day: number; projected: number | null; actual: number }[];
+  }[];
+}
+
+export interface ForecastData {
+  context_id: string;
+  category_id: string | null;
+  month: number;
+  year: number;
+  projected_amount: number;
+  budget_amount: number;
+  spent_so_far: number;
+  alert_tier: 'overspend' | 'on_track_exceed' | 'early_warning' | null;
+}
+
 export interface DashboardSummary {
-  total_spent_month: number;
+  total_spent: number;
+  previous_spent: number;
+  period_label: string;
+  previous_period_label: string | null;
   your_balance: number;
   member_count: number;
   total_budget: number;
   budget_utilization: number;
+  remaining_budget: number;
   expenses_by_category: { name: string; amount: number; color: string }[];
   recent_expenses: Expense[];
-  monthly_comparison: { current: number; previous: number };
   active_members: ContextMember[];
 }

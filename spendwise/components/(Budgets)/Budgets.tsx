@@ -104,8 +104,10 @@ export default function Budgets() {
 
       setBudgets(budgetList);
 
-      // Fetch forecasts for this context/month/year
+      // Always run fresh forecast, then merge results
+      setForecasting(true);
       try {
+        await api.post('/forecasts/run');
         const forecastRes = await api.get('/forecasts', {
           params: {
             context_id: currentContext.id,
@@ -132,10 +134,11 @@ export default function Budgets() {
             }
             return b;
           }));
-          console.log('[Budgets] Forecast match:', forecastData.length, 'forecasts');
         }
       } catch (err) {
-        // Forecast data is optional — don't block the UI
+        // Forecast data is optional
+      } finally {
+        setForecasting(false);
       }
     } catch (err: any) {
       console.error('[Budgets] Error:', err.response?.data || err.message);
