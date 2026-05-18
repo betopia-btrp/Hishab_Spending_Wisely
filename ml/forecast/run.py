@@ -2,9 +2,13 @@
 """
 SpendWise — Spending Forecast per user.
 
+Generates month-end projections per budget category using Prophet (ML)
+with a linear fallback. Also supports backtesting to measure accuracy.
+
 Usage:
     python3 ml/forecast/run.py --user-id <uuid>
     python3 ml/forecast/run.py --user-id <uuid> --dry-run
+    python3 ml/forecast/run.py --user-id <uuid> --target-month 5 --target-year 2026 --cutoff-day 15
 """
 
 import argparse, os, sys
@@ -12,26 +16,46 @@ from datetime import date, timedelta
 import psycopg2
 import pandas as pd
 
+# ── Database config (overridable via --db-host / --db-port CLI args) ──────────
 DB_CONFIG = {
     "host": "127.0.0.1", "port": 5435,
     "dbname": "spendwise", "user": "spendwise", "password": "spendwise",
 }
 
+def patch_db_config(args):
+    """Override DB_CONFIG with CLI-provided host/port (used in Docker)."""
+    if args.db_host:
+        DB_CONFIG["host"] = args.db_host
+    if args.db_port:
+        DB_CONFIG["port"] = int(args.db_port)
+
+# Import sibling modules (linear_fallback, alert_tiers) from same directory
 BASE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, BASE)
 from linear_fallback import linear_projection
+from regression_model import forecast_remaining
 from alert_tiers import evaluate as evaluate_alert
 
 
+# ── Main forecast: projects spending for each budget for the current month ────
 def forecast_for_user(cursor, user_id, dry_run=False):
+    """
+    For each budget the user has in the current month:
+      1. Fetch daily spend so far
+      2. Fetch last 90 days of history for training
+      3. Try Prophet ML forecast for remaining days; fall back to linear projection
+      4. Evaluate alert tier (overspend / on_track_exceed / early_warning)
+      5. Return list of results (one per budget category)
+    """
     today = date.today()
     month, year = today.month, today.year
+    # Calculate total days in current month
     total_days = (date(year + 1, 1, 1) if month == 12
                   else date(year, month + 1, 1) - date(year, month, 1)).days
     days_passed = today.day - 1
     days_left = total_days - days_passed
 
-    # Get contexts this user belongs to
+    # Step 1: Find all group/contexts the user belongs to
     cursor.execute("""
         SELECT c.id, c.type
         FROM contexts c
@@ -45,7 +69,7 @@ def forecast_for_user(cursor, user_id, dry_run=False):
     ctx_ids = [c[0] for c in contexts]
     results = []
 
-    # Get budgets for this user's contexts this month
+    # Step 2: Get all budgets for this user's contexts for the current month
     budget_query = """
         SELECT b.id, b.context_id, b.category_id, b.amount
         FROM budgets b
@@ -56,13 +80,14 @@ def forecast_for_user(cursor, user_id, dry_run=False):
     cursor.execute(budget_query, (ctx_ids, month, year))
     budgets = cursor.fetchall()
 
+    # Step 3: Loop through each budget and project
     for b in budgets:
         budget_id = b[0]
         context_id = b[1]
         category_id = b[2]
         budget_amount = float(b[3])
 
-        # Fetch daily spend this month (for current tracked spend)
+        # ── Fetch daily spend so far this month ──
         if category_id:
             cursor.execute("""
                 SELECT expense_date, SUM(amount)::numeric
@@ -87,9 +112,9 @@ def forecast_for_user(cursor, user_id, dry_run=False):
         n_days = len(rows)
 
         if n_days == 0:
-            continue
+            continue  # skip budgets with no spend yet this month
 
-        # Fetch last 90 days of data for Prophet training
+        # ── Fetch last 90 days of data for ML training ──
         lookback_start = today - timedelta(days=90)
         if category_id:
             cursor.execute("""
@@ -113,28 +138,36 @@ def forecast_for_user(cursor, user_id, dry_run=False):
         hist_rows = cursor.fetchall()
         hist_n_days = len(hist_rows)
 
-        # Compute historical daily average from 90-day window
+        # ── Compute recency-weighted historical daily average ──
+        # Buckets: last 30 days (weight 3), days 31-60 (weight 2), days 61-90 (weight 1)
+        # This means recent spending patterns influence the average more.
         historical_daily_avg = None
         if hist_rows:
-            lookback_total = sum(float(r[1]) for r in hist_rows)
-            historical_daily_avg = lookback_total / 90  # per calendar day avg
+            cutoff_30 = today - timedelta(days=30)
+            cutoff_60 = today - timedelta(days=60)
+            weighted_total = 0.0
+            for r in hist_rows:
+                d = r[0]
+                if d >= cutoff_30:
+                    weight = 3
+                elif d >= cutoff_60:
+                    weight = 2
+                else:
+                    weight = 1
+                weighted_total += float(r[1]) * weight
+            historical_daily_avg = weighted_total / (30 * 3 + 30 * 2 + 30)
 
-        # Forecast — train on last 90 days, predict remaining this month
+        # ── Try regression model forecast if enough history (>= 7 days) ──
         if hist_n_days >= 7:
-            try:
-                from prophet_model import forecast_remaining
-                df = pd.DataFrame(hist_rows, columns=["ds", "y"])
-                df["ds"] = pd.to_datetime(df["ds"])
-                df["y"] = df["y"].astype(float)
-                projected_remaining = forecast_remaining(
-                    df, days_left,
-                    historical_daily_avg=historical_daily_avg
-                )
-            except Exception:
-                projected_remaining = None
+            df = pd.DataFrame(hist_rows, columns=["ds", "y"])
+            projected_remaining = forecast_remaining(
+                df, days_left,
+                historical_daily_avg=historical_daily_avg
+            )
         else:
             projected_remaining = None
 
+        # ── Fallback: linear projection if regression fails or insufficient data ──
         if projected_remaining is None:
             projected_remaining = linear_projection(
                 spent_so_far, days_passed, days_left,
@@ -143,6 +176,8 @@ def forecast_for_user(cursor, user_id, dry_run=False):
             )
 
         projected_total = round(spent_so_far + projected_remaining, 2)
+
+        # ── Evaluate alert tier based on projected vs budget ──
         alert_tier = evaluate_alert(
             spent_so_far, projected_total, budget_amount,
             days_left, total_days
@@ -169,48 +204,15 @@ def forecast_for_user(cursor, user_id, dry_run=False):
     return results
 
 
-def run():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--user-id", required=True)
-    parser.add_argument("--dry-run", action="store_true")
-    args = parser.parse_args()
-
-    conn = psycopg2.connect(**DB_CONFIG)
-    cursor = conn.cursor()
-    results = forecast_for_user(cursor, args.user_id, args.dry_run)
-
-    if not args.dry_run and results:
-        # Delete old forecasts for these contexts/month/year to avoid NULL duplicates
-        ctx_months = set((r["context_id"], r["month"], r["year"]) for r in results)
-        for ctx_id, m, y in ctx_months:
-            cursor.execute(
-                "DELETE FROM ml_forecasts WHERE context_id = %s AND month = %s AND year = %s",
-                (ctx_id, m, y)
-            )
-
-        insert_sql = """
-            INSERT INTO ml_forecasts
-                (id, context_id, category_id, month, year,
-                 projected_amount, budget_amount, spent_so_far, alert_tier,
-                 created_at, updated_at)
-            VALUES (gen_random_uuid(), %s, %s, %s, %s,
-                    %s, %s, %s, %s, NOW(), NOW())
-        """
-        data = [(r["context_id"], r["category_id"], r["month"], r["year"],
-                 r["projected_amount"], r["budget_amount"],
-                 r["spent_so_far"], r["alert_tier"]) for r in results]
-        cursor.executemany(insert_sql, data)
-        conn.commit()
-
-        alerts = [r for r in results if r["alert_tier"]]
-        print(f"User {args.user_id[:8]}.. : {len(results)} forecasts, "
-              f"{len(alerts)} alerts")
-
-    conn.close()
-
-
+# ── Backtest: simulates forecast from a past cutoff date and compares with actuals ──
 def backtest_for_user(cursor, user_id, target_month, target_year, cutoff_day):
-    """Run forecast as if today were cutoff_day, then compare with actual full-month spend."""
+    """
+    Run forecast as if today were cutoff_day (past date), then compare
+    projected month-end total against the actual full-month spend.
+
+    Returns per-category daily breakdown + overall MAPE score.
+    Used by the Forecast backtest UI tab to measure accuracy.
+    """
     today = date(target_year, target_month, cutoff_day)
     total_days = (date(target_year + 1, 1, 1) if target_month == 12
                   else date(target_year, target_month + 1, 1) - date(target_year, target_month, 1)).days
@@ -220,6 +222,7 @@ def backtest_for_user(cursor, user_id, target_month, target_year, cutoff_day):
     if total_days < cutoff_day:
         cutoff_day = total_days
 
+    # Find user's contexts
     cursor.execute("""
         SELECT c.id, c.type
         FROM contexts c
@@ -234,6 +237,7 @@ def backtest_for_user(cursor, user_id, target_month, target_year, cutoff_day):
     ctx_ids = [c[0] for c in contexts]
     results = []
 
+    # Get budgets for the target month
     budget_query = """
         SELECT b.id, b.context_id, b.category_id, b.amount
         FROM budgets b
@@ -259,7 +263,7 @@ def backtest_for_user(cursor, user_id, target_month, target_year, cutoff_day):
         cat_row = cursor.fetchone()
         category_name = cat_row[0] if cat_row else "Base"
 
-        # Expenses up to cutoff day (training data)
+        # ── A) Expenses up to cutoff day (acts as "training data" for the backtest) ──
         if category_id:
             cursor.execute("""
                 SELECT expense_date, SUM(amount)::numeric
@@ -286,7 +290,7 @@ def backtest_for_user(cursor, user_id, target_month, target_year, cutoff_day):
         if n_days == 0:
             continue
 
-        # Full month actual spend
+        # ── B) Full month actual total (used as ground truth for comparison) ──
         if category_id:
             cursor.execute("""
                 SELECT SUM(amount)::numeric
@@ -307,7 +311,7 @@ def backtest_for_user(cursor, user_id, target_month, target_year, cutoff_day):
                   date(target_year, target_month, total_days)))
         actual_total = round(float(cursor.fetchone()[0] or 0), 2)
 
-        # Full month daily actual for breakdown
+        # ── C) Full month daily breakdown (for the chart) ──
         if category_id:
             cursor.execute("""
                 SELECT expense_date, SUM(amount)::numeric
@@ -330,7 +334,7 @@ def backtest_for_user(cursor, user_id, target_month, target_year, cutoff_day):
                   date(target_year, target_month, total_days)))
         full_month_rows = cursor.fetchall()
 
-        # Historical data for ML (90 days before cutoff)
+        # ── D) Historical data (90 days before cutoff, for Prophet training) ──
         lookback_start = today - timedelta(days=90)
         if category_id:
             cursor.execute("""
@@ -353,22 +357,29 @@ def backtest_for_user(cursor, user_id, target_month, target_year, cutoff_day):
         hist_rows = cursor.fetchall()
         hist_n_days = len(hist_rows)
 
+        # Recency-weighted historical daily average (same logic as forecast_for_user)
         historical_daily_avg = None
         if hist_rows:
-            lookback_total = sum(float(r[1]) for r in hist_rows)
-            historical_daily_avg = lookback_total / 90
+            cutoff_30 = today - timedelta(days=30)
+            cutoff_60 = today - timedelta(days=60)
+            weighted_total = 0.0
+            for r in hist_rows:
+                d = r[0]
+                if d >= cutoff_30:
+                    weight = 3
+                elif d >= cutoff_60:
+                    weight = 2
+                else:
+                    weight = 1
+                weighted_total += float(r[1]) * weight
+            historical_daily_avg = weighted_total / (30 * 3 + 30 * 2 + 30)
 
+        # ── E) Projection (regression → linear fallback) ──
         if hist_n_days >= 7:
-            try:
-                from prophet_model import forecast_remaining
-                df = pd.DataFrame(hist_rows, columns=["ds", "y"])
-                df["ds"] = pd.to_datetime(df["ds"])
-                df["y"] = df["y"].astype(float)
-                projected_remaining = forecast_remaining(
-                    df, days_left, historical_daily_avg=historical_daily_avg
-                )
-            except Exception:
-                projected_remaining = None
+            df = pd.DataFrame(hist_rows, columns=["ds", "y"])
+            projected_remaining = forecast_remaining(
+                df, days_left, historical_daily_avg=historical_daily_avg
+            )
         else:
             projected_remaining = None
 
@@ -385,9 +396,10 @@ def backtest_for_user(cursor, user_id, target_month, target_year, cutoff_day):
             days_left, total_days
         )
 
+        # MAPE = Mean Absolute Percentage Error (how off the projection was)
         mape = round(abs(projected_total - actual_total) / actual_total * 100, 2) if actual_total > 0 else None
 
-        # Build daily breakdown for remaining days
+        # Build daily breakdown: before cutoff = actual only, after = actual + projected
         daily_projected_amt = round(projected_remaining / days_left, 2) if days_left > 0 else 0
         daily_breakdown = []
         day_map = {r[0].day: float(r[1]) for r in full_month_rows}
@@ -418,7 +430,7 @@ def backtest_for_user(cursor, user_id, target_month, target_year, cutoff_day):
             "daily_breakdown": daily_breakdown,
         })
 
-    # Overall MAPE (weighted by actual spend)
+    # Overall MAPE: weighted by actual spend (so larger categories count more)
     valid = [r for r in results if r["mape"] is not None]
     overall_mape = round(
         sum(r["mape"] * r["actual"] for r in valid) / sum(r["actual"] for r in valid), 2
@@ -434,6 +446,7 @@ def backtest_for_user(cursor, user_id, target_month, target_year, cutoff_day):
     }
 
 
+# ── CLI entry point: parses args, picks forecast or backtest mode ─────────────
 def run():
     parser = argparse.ArgumentParser()
     parser.add_argument("--user-id", required=True)
@@ -441,11 +454,15 @@ def run():
     parser.add_argument("--target-month", type=int, help="Month to backtest")
     parser.add_argument("--target-year", type=int, help="Year to backtest")
     parser.add_argument("--cutoff-day", type=int, default=13, help="Day to use as cutoff for backtest")
+    parser.add_argument("--db-host", default=None, help="Database host")
+    parser.add_argument("--db-port", default=None, help="Database port")
     args = parser.parse_args()
 
+    patch_db_config(args)
     conn = psycopg2.connect(**DB_CONFIG)
     cursor = conn.cursor()
 
+    # Backtest mode: --target-month and --target-year are provided
     if args.target_month and args.target_year:
         import json
         result = backtest_for_user(cursor, args.user_id, args.target_month, args.target_year, args.cutoff_day)
@@ -453,9 +470,11 @@ def run():
         conn.close()
         return
 
+    # Default mode: run forecast for current month
     results = forecast_for_user(cursor, args.user_id, args.dry_run)
 
     if not args.dry_run and results:
+        # Delete old forecasts for these contexts/month/year before inserting new ones
         ctx_months = set((r["context_id"], r["month"], r["year"]) for r in results)
         for ctx_id, m, y in ctx_months:
             cursor.execute(
@@ -463,6 +482,7 @@ def run():
                 (ctx_id, m, y)
             )
 
+        # Insert new forecast results into the database
         insert_sql = """
             INSERT INTO ml_forecasts
                 (id, context_id, category_id, month, year,

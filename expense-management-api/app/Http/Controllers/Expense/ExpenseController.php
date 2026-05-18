@@ -10,6 +10,7 @@ use App\Models\ContextMember;
 use App\Models\Expense;
 use App\Services\CategorySuggestionService;
 use App\Services\ExpenseService;
+use App\Services\ReceiptScanService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -29,6 +30,24 @@ class ExpenseController extends Controller
      * POST /api/expenses/suggest-category
      * AI-powered category suggestion from expense note text.
      */
+    public function scanReceipt(Request $request, ReceiptScanService $scanner): JsonResponse
+    {
+        $request->validate([
+            'image'    => 'required|string',
+            'mime_type' => 'nullable|string|in:image/jpeg,image/png,image/webp',
+        ]);
+
+        $result = $scanner->scan($request->image, $request->mime_type ?? 'image/jpeg');
+
+        if (!$result) {
+            return response()->json([
+                'message' => 'Could not extract data from receipt. Check GEMINI_API_KEY is configured or try a clearer image.',
+            ], 422);
+        }
+
+        return response()->json($result);
+    }
+
     public function suggestCategory(Request $request): JsonResponse
     {
         $request->validate(['note' => 'required|string|max:255']);
