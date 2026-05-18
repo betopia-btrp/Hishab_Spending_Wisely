@@ -11,11 +11,11 @@ Usage:
   python -m ml.seeding.generate --test        # 1000 expenses for quick test
 """
 
+import hashlib
 import os
 import random
-import sys
-import hashlib
 import string
+import sys
 from collections import defaultdict
 from datetime import date, datetime, timedelta
 
@@ -27,31 +27,44 @@ import psycopg2.extras
 _SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 if __package__ is None:
     sys.path.insert(0, os.path.dirname(_SCRIPT_DIR))
-    from seeding.utils import load_yaml, uuid4
-    from seeding.angles import assign_angles, compute_profiles, build_user_weight_list
-    from seeding.temporal import (
-        build_weighted_date_list, assign_active_ranges, assign_velocity_profiles,
-        apply_salary_day_weight, apply_velocity_weight, is_ramadan, apply_ramadan_hourly_weight,
-    )
-    from seeding.notes import generate_note
+    from seeding.angles import assign_angles, build_user_weight_list, compute_profiles
     from seeding.budgets import generate_budgets
-else:
-    from .utils import load_yaml, uuid4
-    from .angles import assign_angles, compute_profiles, build_user_weight_list
-    from .temporal import (
-        build_weighted_date_list, assign_active_ranges, assign_velocity_profiles,
-        apply_salary_day_weight, apply_velocity_weight, is_ramadan, apply_ramadan_hourly_weight,
+    from seeding.notes import generate_note
+    from seeding.temporal import (
+        apply_ramadan_hourly_weight,
+        apply_salary_day_weight,
+        apply_velocity_weight,
+        assign_active_ranges,
+        assign_velocity_profiles,
+        build_weighted_date_list,
+        is_ramadan,
     )
-    from .notes import generate_note
+    from seeding.utils import load_yaml, uuid4
+else:
+    from .angles import assign_angles, build_user_weight_list, compute_profiles
     from .budgets import generate_budgets
+    from .notes import generate_note
+    from .temporal import (
+        apply_ramadan_hourly_weight,
+        apply_salary_day_weight,
+        apply_velocity_weight,
+        assign_active_ranges,
+        assign_velocity_profiles,
+        build_weighted_date_list,
+        is_ramadan,
+    )
+    from .utils import load_yaml, uuid4
 
 
 # ─── Module-level globals ───
 BASE_DIR = _SCRIPT_DIR
 
 DB_CONFIG = {
-    "host": "127.0.0.1", "port": 5435,
-    "dbname": "spendwise", "user": "spendwise", "password": "spendwise",
+    "host": "127.0.0.1",
+    "port": 5435,
+    "dbname": "spendwise",
+    "user": "spendwise",
+    "password": "spendwise",
 }
 
 
@@ -69,7 +82,10 @@ def _load_templates():
         "ambiguous": load_yaml(os.path.join(tpl_dir, "ambiguous.yaml")),
         "venue_banks": load_yaml(os.path.join(tpl_dir, "venue_banks.yaml")),
         # Merged: English + Bangla value banks for placeholder resolution
-        "_merged_values": {**load_yaml(os.path.join(tpl_dir, "values.yaml")), **bangla_words},
+        "_merged_values": {
+            **load_yaml(os.path.join(tpl_dir, "values.yaml")),
+            **bangla_words,
+        },
     }
 
 
@@ -77,73 +93,178 @@ def _load_templates():
 #  Base Entity Seeding
 # ═══════════════════════════════════════════════════════════════
 
+
 def seed_users(cursor, cfg):
     """Generate and insert user records. Returns (users, pre_assigned)."""
 
     # Full names by religion (male) — from user-provided list
     MALE_FULL_NAMES = {
         "muslim": [
-            "Mohammad Abdur Rahman", "Md. Tariqul Islam", "Sheikh Muhammad Jahangir",
-            "Abu Bakar Siddique", "Md. Nurul Haque", "Mohammad Saiful Islam",
-            "Md. Mizanur Rahman", "A.K.M. Shamsul Huda", "Mohammad Rafiqul Islam",
-            "Md. Habibur Rahman", "Kazi Nazrul Islam", "Mohammad Anisur Rahman",
-            "Md. Shahadat Hossain", "Abu Naeem Mohammad Faizullah", "Md. Golam Mostafa",
-            "Mohammad Mahbubur Rahman", "Md. Lutfur Rahman", "Sheikh Farid Uddin Ahmed",
-            "Mohammad Zahirul Haque", "Md. Rezaul Karim", "Md. Khurshidul Alam",
-            "Mohammad Moniruzzaman", "Md. Shafiqul Islam", "Molla Abul Kalam Azad",
-            "Md. Enamul Haque", "Mohammad Ashrafuzzaman", "Md. Belal Hossain",
-            "Abu Talha Mohammad Yunus", "Md. Shamsul Alam", "Mohammad Atiqur Rahman",
-            "Md. Kamruzzaman", "Sheikh Abdus Salam", "Md. Moshiur Rahman",
-            "Mohammad Faruk Hossain", "Md. Jahurul Islam", "Abu Hena Mustafa Kamal",
-            "Mohammad Delwar Hossain", "Md. Sabbir Ahmed", "Mohammad Nazimuddin",
+            "Mohammad Abdur Rahman",
+            "Md. Tariqul Islam",
+            "Sheikh Muhammad Jahangir",
+            "Abu Bakar Siddique",
+            "Md. Nurul Haque",
+            "Mohammad Saiful Islam",
+            "Md. Mizanur Rahman",
+            "A.K.M. Shamsul Huda",
+            "Mohammad Rafiqul Islam",
+            "Md. Habibur Rahman",
+            "Kazi Nazrul Islam",
+            "Mohammad Anisur Rahman",
+            "Md. Shahadat Hossain",
+            "Abu Naeem Mohammad Faizullah",
+            "Md. Golam Mostafa",
+            "Mohammad Mahbubur Rahman",
+            "Md. Lutfur Rahman",
+            "Sheikh Farid Uddin Ahmed",
+            "Mohammad Zahirul Haque",
+            "Md. Rezaul Karim",
+            "Md. Khurshidul Alam",
+            "Mohammad Moniruzzaman",
+            "Md. Shafiqul Islam",
+            "Molla Abul Kalam Azad",
+            "Md. Enamul Haque",
+            "Mohammad Ashrafuzzaman",
+            "Md. Belal Hossain",
+            "Abu Talha Mohammad Yunus",
+            "Md. Shamsul Alam",
+            "Mohammad Atiqur Rahman",
+            "Md. Kamruzzaman",
+            "Sheikh Abdus Salam",
+            "Md. Moshiur Rahman",
+            "Mohammad Faruk Hossain",
+            "Md. Jahurul Islam",
+            "Abu Hena Mustafa Kamal",
+            "Mohammad Delwar Hossain",
+            "Md. Sabbir Ahmed",
+            "Mohammad Nazimuddin",
             "Md. Aminul Islam",
         ],
         "hindu": [
-            "Rajesh Kumar Sharma", "Biplab Chandra Das", "Sunil Kanti Roy",
-            "Nikhil Ranjan Dey", "Prodip Kumar Ghosh", "Ashok Kumar Saha",
-            "Bimal Chandra Pal", "Kamal Krishna Sen", "Dulal Chandra Biswas",
-            "Ranjit Kumar Halder", "Tapan Kumar Mondal", "Subhas Chandra Bose",
-            "Nirmal Chandra Datta", "Gobinda Chandra Nath", "Pranab Kumar Debnath",
-            "Swapan Kumar Chakraborty", "Hiren Chandra Sarkar", "Dilip Kumar Mandal",
-            "Anil Chandra Shil", "Uttam Kumar Poddar", "Binoy Krishna Bhadra",
-            "Samir Chandra Gope", "Amitabh Ranjan Barua", "Sushil Kumar Talukdar",
-            "Mrinal Kanti Sinha", "Pankaj Kumar Chowdhury", "Debashish Chandra Guha",
-            "Bikash Chandra Majumder", "Ratan Lal Sutradhar", "Naresh Chandra Basak",
-            "Sanjib Kumar Kundu", "Dipankar Chandra Banik", "Arun Kumar Adhikari",
-            "Parimal Chandra Karmakar", "Sisir Kumar Palit", "Rabindra Nath Roy",
-            "Hemanta Kumar Bain", "Khokon Chandra Das", "Netai Chandra Biswas",
+            "Rajesh Kumar Sharma",
+            "Biplab Chandra Das",
+            "Sunil Kanti Roy",
+            "Nikhil Ranjan Dey",
+            "Prodip Kumar Ghosh",
+            "Ashok Kumar Saha",
+            "Bimal Chandra Pal",
+            "Kamal Krishna Sen",
+            "Dulal Chandra Biswas",
+            "Ranjit Kumar Halder",
+            "Tapan Kumar Mondal",
+            "Subhas Chandra Bose",
+            "Nirmal Chandra Datta",
+            "Gobinda Chandra Nath",
+            "Pranab Kumar Debnath",
+            "Swapan Kumar Chakraborty",
+            "Hiren Chandra Sarkar",
+            "Dilip Kumar Mandal",
+            "Anil Chandra Shil",
+            "Uttam Kumar Poddar",
+            "Binoy Krishna Bhadra",
+            "Samir Chandra Gope",
+            "Amitabh Ranjan Barua",
+            "Sushil Kumar Talukdar",
+            "Mrinal Kanti Sinha",
+            "Pankaj Kumar Chowdhury",
+            "Debashish Chandra Guha",
+            "Bikash Chandra Majumder",
+            "Ratan Lal Sutradhar",
+            "Naresh Chandra Basak",
+            "Sanjib Kumar Kundu",
+            "Dipankar Chandra Banik",
+            "Arun Kumar Adhikari",
+            "Parimal Chandra Karmakar",
+            "Sisir Kumar Palit",
+            "Rabindra Nath Roy",
+            "Hemanta Kumar Bain",
+            "Khokon Chandra Das",
+            "Netai Chandra Biswas",
             "Jyotish Chandra Rishi",
         ],
         "buddhist": [
-            "Suddhananda Mahathero Barua", "Priya Ratan Barua", "Bikash Chandra Chakma",
-            "Surjya Kumar Marma", "Prem Lal Tripura", "Bodhi Ranjan Barua",
-            "Ananda Mitra Chakma", "Naba Kumar Tanchangya", "Dharma Jyoti Barua",
-            "Shuvo Ratan Marma", "Mong Shwe Prue Marma", "Kushal Chandra Chakma",
-            "Dipankar Bhikkhu Barua", "Rana Bikram Tripura", "Subarna Kanti Barua",
-            "Ching Mong Marma", "Jibon Chakma", "Nirban Ranjan Barua",
-            "Prajna Lal Chakma", "Arjun Kumar Tanchangya", "Metta Priya Barua",
-            "Thui Prue Marma", "Saddha Ranjan Chakma", "Lokesh Chandra Barua",
-            "Mong Sanu Marma", "Karuna Sindhu Chakma", "Prajnananda Thero Barua",
-            "Ripon Chakma", "Suman Kanti Tripura", "Bikram Jit Barua",
-            "Tun Mong Marma", "Amrita Lal Chakma", "Sangha Priya Barua",
-            "Rishi Kumar Tanchangya", "Chandra Kirti Barua", "Mong Prue Kyaw Marma",
-            "Shanti Ranjan Chakma", "Gyan Tilak Barua", "Lalita Mohan Tripura",
+            "Suddhananda Mahathero Barua",
+            "Priya Ratan Barua",
+            "Bikash Chandra Chakma",
+            "Surjya Kumar Marma",
+            "Prem Lal Tripura",
+            "Bodhi Ranjan Barua",
+            "Ananda Mitra Chakma",
+            "Naba Kumar Tanchangya",
+            "Dharma Jyoti Barua",
+            "Shuvo Ratan Marma",
+            "Mong Shwe Prue Marma",
+            "Kushal Chandra Chakma",
+            "Dipankar Bhikkhu Barua",
+            "Rana Bikram Tripura",
+            "Subarna Kanti Barua",
+            "Ching Mong Marma",
+            "Jibon Chakma",
+            "Nirban Ranjan Barua",
+            "Prajna Lal Chakma",
+            "Arjun Kumar Tanchangya",
+            "Metta Priya Barua",
+            "Thui Prue Marma",
+            "Saddha Ranjan Chakma",
+            "Lokesh Chandra Barua",
+            "Mong Sanu Marma",
+            "Karuna Sindhu Chakma",
+            "Prajnananda Thero Barua",
+            "Ripon Chakma",
+            "Suman Kanti Tripura",
+            "Bikram Jit Barua",
+            "Tun Mong Marma",
+            "Amrita Lal Chakma",
+            "Sangha Priya Barua",
+            "Rishi Kumar Tanchangya",
+            "Chandra Kirti Barua",
+            "Mong Prue Kyaw Marma",
+            "Shanti Ranjan Chakma",
+            "Gyan Tilak Barua",
+            "Lalita Mohan Tripura",
             "Vipassana Ratan Barua",
         ],
         "christian": [
-            "Joseph Rozario", "Francis Xavier Gomes", "Anthony Pius Costa",
-            "Michael Patrick D'Rozario", "John Baptist Rebeiro", "Peter Paul Mondol",
-            "Thomas Augustine Halder", "James Cornelius Rodrigues", "David Solomon Biswas",
-            "Stephen Clement Baroi", "Christopher Robin Mridha", "Benedict Simon Patro",
-            "Andrew Martin Gomes", "Lawrence Bernard Costa", "Matthew Jerome D'Costa",
-            "Philip Augustine Rebeiro", "Samuel George Mondal", "Daniel Patrick Rodrigues",
-            "Joshua Emmanuel Baroi", "Nathan Abraham Halder", "Gabriel Pius Mridha",
-            "Raphael Anthony Costa", "Emmanuel Simon Gomes", "Ignatius Paul D'Rozario",
-            "Sebastian Martin Rebeiro", "Patrick Bernard Mondal", "Gerald Augustine Biswas",
-            "Cornelius Joseph Halder", "Barnabas Simon Rodrigues", "Tobias Peter Baroi",
-            "Elias John Mridha", "Isaac Stephen Costa", "Jacob Paul Gomes",
-            "Ezra Philip D'Costa", "Moses Thomas Rebeiro", "Abel Jerome Mondal",
-            "Noah Martin Biswas", "Aaron Emmanuel Baroi", "Caleb Solomon Halder",
+            "Joseph Rozario",
+            "Francis Xavier Gomes",
+            "Anthony Pius Costa",
+            "Michael Patrick D'Rozario",
+            "John Baptist Rebeiro",
+            "Peter Paul Mondol",
+            "Thomas Augustine Halder",
+            "James Cornelius Rodrigues",
+            "David Solomon Biswas",
+            "Stephen Clement Baroi",
+            "Christopher Robin Mridha",
+            "Benedict Simon Patro",
+            "Andrew Martin Gomes",
+            "Lawrence Bernard Costa",
+            "Matthew Jerome D'Costa",
+            "Philip Augustine Rebeiro",
+            "Samuel George Mondal",
+            "Daniel Patrick Rodrigues",
+            "Joshua Emmanuel Baroi",
+            "Nathan Abraham Halder",
+            "Gabriel Pius Mridha",
+            "Raphael Anthony Costa",
+            "Emmanuel Simon Gomes",
+            "Ignatius Paul D'Rozario",
+            "Sebastian Martin Rebeiro",
+            "Patrick Bernard Mondal",
+            "Gerald Augustine Biswas",
+            "Cornelius Joseph Halder",
+            "Barnabas Simon Rodrigues",
+            "Tobias Peter Baroi",
+            "Elias John Mridha",
+            "Isaac Stephen Costa",
+            "Jacob Paul Gomes",
+            "Ezra Philip D'Costa",
+            "Moses Thomas Rebeiro",
+            "Abel Jerome Mondal",
+            "Noah Martin Biswas",
+            "Aaron Emmanuel Baroi",
+            "Caleb Solomon Halder",
             "Ruben Gabriel Rodrigues",
         ],
     }
@@ -151,43 +272,162 @@ def seed_users(cursor, cfg):
     # Female first names by religion + shared family name pools
     FEMALE_FIRST = {
         "muslim": [
-            "Sadia","Nusrat","Nazia","Mou","Sumaiya","Ayesha","Fatima","Jannat",
-            "Sharmin","Tania","Nahar","Runa","Selina","Hasina","Rokeya","Nadia",
-            "Sajeda","Parvin","Shahnaz","Jesmin","Nasrin","Kulsum","Asma",
-            "Hosneara","Khaleda","Shirin","Rahima","Fatema","Maleka","Razia",
+            "Sadia",
+            "Nusrat",
+            "Nazia",
+            "Mou",
+            "Sumaiya",
+            "Ayesha",
+            "Fatima",
+            "Jannat",
+            "Sharmin",
+            "Tania",
+            "Nahar",
+            "Runa",
+            "Selina",
+            "Hasina",
+            "Rokeya",
+            "Nadia",
+            "Sajeda",
+            "Parvin",
+            "Shahnaz",
+            "Jesmin",
+            "Nasrin",
+            "Kulsum",
+            "Asma",
+            "Hosneara",
+            "Khaleda",
+            "Shirin",
+            "Rahima",
+            "Fatema",
+            "Maleka",
+            "Razia",
         ],
         "hindu": [
-            "Shanta","Bina","Shampa","Rina","Mina","Shikha","Shobha","Purnima",
-            "Swapna","Kajol","Sharmila","Tanushree","Shreya","Rupali","Sipra",
-            "Anjana","Kakoli","Deepa","Moushumi",
+            "Shanta",
+            "Bina",
+            "Shampa",
+            "Rina",
+            "Mina",
+            "Shikha",
+            "Shobha",
+            "Purnima",
+            "Swapna",
+            "Kajol",
+            "Sharmila",
+            "Tanushree",
+            "Shreya",
+            "Rupali",
+            "Sipra",
+            "Anjana",
+            "Kakoli",
+            "Deepa",
+            "Moushumi",
         ],
         "buddhist": [
-            "Kumud","Panna","Ratna","Shanti","Suchitra","Rita","Mala","Purnima","Anita",
+            "Kumud",
+            "Panna",
+            "Ratna",
+            "Shanti",
+            "Suchitra",
+            "Rita",
+            "Mala",
+            "Purnima",
+            "Anita",
         ],
         "christian": [
-            "Mary","Sarah","Ruth","Martha","Elizabeth","Helen","Anne",
-            "Christina","Rebecca","Lily","Nina","Natalie",
+            "Mary",
+            "Sarah",
+            "Ruth",
+            "Martha",
+            "Elizabeth",
+            "Helen",
+            "Anne",
+            "Christina",
+            "Rebecca",
+            "Lily",
+            "Nina",
+            "Natalie",
         ],
     }
 
     FAMILY = {
         "muslim": [
-            "Rahman","Islam","Hossain","Chowdhury","Hasan","Ali","Khan","Sarker",
-            "Mollah","Sheikh","Haque","Mahmud","Mirza","Kabir","Alam","Faruque",
-            "Hussain","Talukdar","Ahmed","Karim","Azad","Salam",
+            "Rahman",
+            "Islam",
+            "Hossain",
+            "Chowdhury",
+            "Hasan",
+            "Ali",
+            "Khan",
+            "Sarker",
+            "Mollah",
+            "Sheikh",
+            "Haque",
+            "Mahmud",
+            "Mirza",
+            "Kabir",
+            "Alam",
+            "Faruque",
+            "Hussain",
+            "Talukdar",
+            "Ahmed",
+            "Karim",
+            "Azad",
+            "Salam",
         ],
         "hindu": [
-            "Das","Roy","Dey","Ghosh","Saha","Pal","Sen","Biswas","Halder",
-            "Mondal","Bose","Datta","Nath","Debnath","Chakraborty","Sarkar",
-            "Mandal","Shil","Poddar","Sinha","Mazumder","Guha","Banik",
-            "Karmakar","Sutradhar","Basak","Kundu","Adhikari","Rishi",
+            "Das",
+            "Roy",
+            "Dey",
+            "Ghosh",
+            "Saha",
+            "Pal",
+            "Sen",
+            "Biswas",
+            "Halder",
+            "Mondal",
+            "Bose",
+            "Datta",
+            "Nath",
+            "Debnath",
+            "Chakraborty",
+            "Sarkar",
+            "Mandal",
+            "Shil",
+            "Poddar",
+            "Sinha",
+            "Mazumder",
+            "Guha",
+            "Banik",
+            "Karmakar",
+            "Sutradhar",
+            "Basak",
+            "Kundu",
+            "Adhikari",
+            "Rishi",
         ],
         "buddhist": [
-            "Barua","Chakma","Marma","Tripura","Tanchangya",
+            "Barua",
+            "Chakma",
+            "Marma",
+            "Tripura",
+            "Tanchangya",
         ],
         "christian": [
-            "Rozario","Gomes","Costa","D'Rozario","Rebeiro","Mondol","Halder",
-            "Rodrigues","Biswas","Baroi","Mridha","Patro","D'Costa",
+            "Rozario",
+            "Gomes",
+            "Costa",
+            "D'Rozario",
+            "Rebeiro",
+            "Mondol",
+            "Halder",
+            "Rodrigues",
+            "Biswas",
+            "Baroi",
+            "Mridha",
+            "Patro",
+            "D'Costa",
         ],
     }
 
@@ -206,8 +446,7 @@ def seed_users(cursor, cfg):
         # Pick gender + religion (weights match config.yaml)
         gender = random.choices(["male", "female"], weights=[50, 50], k=1)[0]
         religion = random.choices(
-            ["muslim", "hindu", "buddhist", "christian"],
-            weights=[70, 18, 7, 5], k=1
+            ["muslim", "hindu", "buddhist", "christian"], weights=[70, 18, 7, 5], k=1
         )[0]
 
         # Build full name from matching pools
@@ -218,10 +457,12 @@ def seed_users(cursor, cfg):
             last = random.choice(FAMILY[religion])
             name = f"{first} {last}"
 
-        email_name = name.lower().replace(" ", ".").replace("'", "").replace("-","")
-        email = f"{email_name}{random.randint(1,999)}@example.com"
+        email_name = name.lower().replace(".", "").replace(" ", ".").replace("'", "").replace("-", "")
+        email = f"{email_name}{random.randint(1, 999)}@example.com"
         while email in emails:
-            email = f"{first.lower()}.{last.lower()}{random.randint(1,999)}@example.com"
+            email = (
+                f"{first.lower()}.{last.lower()}{random.randint(1, 999)}@example.com"
+            )
         emails.add(email)
 
         premium = random.random() < 0.3
@@ -229,31 +470,79 @@ def seed_users(cursor, cfg):
 
         # Spread user signups across 24 months with S-curve growth
         user_idx = len(users)
-        growth_curve = [1,1,1,1,1,2,2,3,4,5,7,7,7,6,5,4,3,2,2,2,2,2,2,2]
+        growth_curve = [
+            1,
+            1,
+            1,
+            1,
+            1,
+            2,
+            2,
+            3,
+            4,
+            5,
+            7,
+            7,
+            7,
+            6,
+            5,
+            4,
+            3,
+            2,
+            2,
+            2,
+            2,
+            2,
+            2,
+            2,
+        ]
         month_bucket = min(user_idx // 42, 23)
         month_offset = sum(growth_curve[:month_bucket]) * 30 + random.randint(0, 29)
         user_created = date(2024, 6, 1) + timedelta(days=month_offset)
 
         password_hash = "$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi"
-        users.append({
-            "id": uid, "plan_id": pro_plan if premium else free_plan,
-            "name": name, "email": email, "password": password_hash,
-            "is_premium": premium, "created_at": user_created,
-        })
+        users.append(
+            {
+                "id": uid,
+                "plan_id": pro_plan if premium else free_plan,
+                "name": name,
+                "email": email,
+                "password": password_hash,
+                "is_premium": premium,
+                "created_at": user_created,
+            }
+        )
 
     # Batch insert
-    cols = ["id","plan_id","name","email","password","is_premium",
-            "created_at","updated_at"]
+    cols = [
+        "id",
+        "plan_id",
+        "name",
+        "email",
+        "password",
+        "is_premium",
+        "created_at",
+        "updated_at",
+    ]
     rows = []
     for u in users:
-        rows.append((u["id"], u["plan_id"], u["name"], u["email"],
-                      u["password"], u["is_premium"],
-                      u["created_at"], u["created_at"]))
+        rows.append(
+            (
+                u["id"],
+                u["plan_id"],
+                u["name"],
+                u["email"],
+                u["password"],
+                u["is_premium"],
+                u["created_at"],
+                u["created_at"],
+            )
+        )
 
     cursor.executemany(
-        f"INSERT INTO users ({','.join(cols)}) VALUES ({','.join(['%s']*len(cols))}) "
+        f"INSERT INTO users ({','.join(cols)}) VALUES ({','.join(['%s'] * len(cols))}) "
         f"ON CONFLICT (id) DO NOTHING",
-        rows
+        rows,
     )
     return users, pre_assigned
 
@@ -266,25 +555,50 @@ def seed_contexts_and_members(cursor, users, cfg):
     for u in users:
         cid = uuid4()
         ctx_date = u["created_at"] + timedelta(hours=random.randint(1, 48))
-        contexts.append({
-            "id": cid, "owner_id": u["id"], "name": "Personal",
-            "type": "personal",
-            "description": "Personal expenses", "invite_code": None,
-            "created_at": ctx_date,
-        })
-        members.append({
-            "id": uuid4(), "context_id": cid, "user_id": u["id"],
-            "role": "admin", "status": "active",
-            "created_at": ctx_date,
-        })
+        contexts.append(
+            {
+                "id": cid,
+                "owner_id": u["id"],
+                "name": "Personal",
+                "type": "personal",
+                "description": "Personal expenses",
+                "invite_code": None,
+                "created_at": ctx_date,
+            }
+        )
+        members.append(
+            {
+                "id": uuid4(),
+                "context_id": cid,
+                "user_id": u["id"],
+                "role": "admin",
+                "status": "active",
+                "created_at": ctx_date,
+            }
+        )
 
     # Group contexts
     gnames = [
-        "House Expenses","Trip Fund","Team Lunch","Family Budget",
-        "Office Pool","Flat Share","Friends Outing","Project Fund",
-        "Vacation Club","Wedding Gift","Birthday Pool","Utility Share",
-        "Dining Club","Road Trip","Weekend Hangs","Groceries Share",
-        "College Group","Bashundhara Flat","Qurbani Fund","Iftar Party",
+        "House Expenses",
+        "Trip Fund",
+        "Team Lunch",
+        "Family Budget",
+        "Office Pool",
+        "Flat Share",
+        "Friends Outing",
+        "Project Fund",
+        "Vacation Club",
+        "Wedding Gift",
+        "Birthday Pool",
+        "Utility Share",
+        "Dining Club",
+        "Road Trip",
+        "Weekend Hangs",
+        "Groceries Share",
+        "College Group",
+        "Bashundhara Flat",
+        "Qurbani Fund",
+        "Iftar Party",
     ]
     for i in range(cfg["base_group_contexts"]):
         owner = random.choice(users)
@@ -294,17 +608,27 @@ def seed_contexts_and_members(cursor, users, cfg):
         seed = int(hashlib.md5(cid.encode()).hexdigest()[:4], 16)
         days_offset = seed % 700
         ctx_date = date(2024, 6, 1) + timedelta(days=days_offset)
-        contexts.append({
-            "id": cid, "owner_id": owner["id"], "name": name,
-            "type": "group",
-            "description": f"Shared {name.lower()} tracking",
-            "invite_code": code, "created_at": ctx_date,
-        })
-        members.append({
-            "id": uuid4(), "context_id": cid, "user_id": owner["id"],
-            "role": "admin", "status": "active",
-            "created_at": ctx_date,
-        })
+        contexts.append(
+            {
+                "id": cid,
+                "owner_id": owner["id"],
+                "name": name,
+                "type": "group",
+                "description": f"Shared {name.lower()} tracking",
+                "invite_code": code,
+                "created_at": ctx_date,
+            }
+        )
+        members.append(
+            {
+                "id": uuid4(),
+                "context_id": cid,
+                "user_id": owner["id"],
+                "role": "admin",
+                "status": "active",
+                "created_at": ctx_date,
+            }
+        )
 
     # Add members to groups
     for ctx in contexts:
@@ -318,39 +642,66 @@ def seed_contexts_and_members(cursor, users, cfg):
         chosen = random.sample(pool, count)
         for u in chosen:
             status = "active"
-            if random.random() < cfg.get("user_assignment", {}).get("pending_member_chance", 0.03):
+            if random.random() < cfg.get("user_assignment", {}).get(
+                "pending_member_chance", 0.03
+            ):
                 status = "pending"
-            elif random.random() < cfg.get("user_assignment", {}).get("inactive_member_chance", 0.05):
+            elif random.random() < cfg.get("user_assignment", {}).get(
+                "inactive_member_chance", 0.05
+            ):
                 status = "removed"
-            members.append({
-                "id": uuid4(), "context_id": ctx["id"], "user_id": u["id"],
-                "role": "member", "status": status,
-                "created_at": ctx["created_at"],
-            })
+            members.append(
+                {
+                    "id": uuid4(),
+                    "context_id": ctx["id"],
+                    "user_id": u["id"],
+                    "role": "member",
+                    "status": status,
+                    "created_at": ctx["created_at"],
+                }
+            )
 
     # Batch insert contexts
     ctx_flat = []
     for c in contexts:
-        ctx_flat.extend([c["id"], c["owner_id"], c["name"], c["type"],
-                          c["description"], c["invite_code"], c["created_at"],
-                          c["created_at"]])
+        ctx_flat.extend(
+            [
+                c["id"],
+                c["owner_id"],
+                c["name"],
+                c["type"],
+                c["description"],
+                c["invite_code"],
+                c["created_at"],
+                c["created_at"],
+            ]
+        )
     placeholders = ",".join(["(%s,%s,%s,%s,%s,%s,%s,%s)"] * len(contexts))
     cursor.execute(
         f"INSERT INTO contexts (id, owner_id, name, type, description, invite_code, created_at, updated_at) "
         f"VALUES {placeholders} ON CONFLICT (id) DO NOTHING",
-        ctx_flat
+        ctx_flat,
     )
 
     # Batch insert members
     mem_flat = []
     for m in members:
-        mem_flat.extend([m["id"], m["context_id"], m["user_id"], m["role"],
-                          m["status"], m["created_at"], m["created_at"]])
+        mem_flat.extend(
+            [
+                m["id"],
+                m["context_id"],
+                m["user_id"],
+                m["role"],
+                m["status"],
+                m["created_at"],
+                m["created_at"],
+            ]
+        )
     placeholders = ",".join(["(%s,%s,%s,%s,%s,%s,%s)"] * len(members))
     cursor.execute(
         f"INSERT INTO context_members (id, context_id, user_id, role, status, created_at, updated_at) "
         f"VALUES {placeholders} ON CONFLICT (id) DO NOTHING",
-        mem_flat
+        mem_flat,
     )
 
     return contexts, members
@@ -359,6 +710,7 @@ def seed_contexts_and_members(cursor, users, cfg):
 # ═══════════════════════════════════════════════════════════════
 #  Expense Generation Helpers
 # ═══════════════════════════════════════════════════════════════
+
 
 def pick_context_for_user(user_id, contexts, member_map):
     """Pick a context for this user's expense, respecting membership."""
@@ -379,8 +731,9 @@ def determine_split_type(ctx_type, member_count):
     if member_count <= 2:
         return random.choices(["none", "equal", "custom"], weights=[30, 50, 20], k=1)[0]
     else:
-        return random.choices(["none", "equal", "custom", "percentage"],
-                              weights=[20, 50, 20, 10], k=1)[0]
+        return random.choices(
+            ["none", "equal", "custom", "percentage"], weights=[20, 50, 20, 10], k=1
+        )[0]
 
 
 def settle_by_age(expense_date, base_chance=0.85):
@@ -448,8 +801,10 @@ def write_splits(fs, split_type, members_here, eid, amt, created_at, creator=Non
         remaining = round(amt - share * len(members_here), 2)
         for sm in members_here:
             sa = round(share + remaining, 2) if sm == creator else share
-            fs.write(f"{uuid4()}\t{eid}\t{sm}\t{sa:.2f}\tNULL\t"
-                     f"{created_at.isoformat()}\t{created_at.isoformat()}\n")
+            fs.write(
+                f"{uuid4()}\t{eid}\t{sm}\t{sa:.2f}\tNULL\t"
+                f"{created_at.isoformat()}\t{created_at.isoformat()}\n"
+            )
             total += 1
 
     elif split_type == "custom":
@@ -458,12 +813,17 @@ def write_splits(fs, split_type, members_here, eid, amt, created_at, creator=Non
             if j == len(members_here) - 1:
                 sa = round(remaining, 2)
             else:
-                sa = round(random.uniform(1, max(1, remaining / (len(members_here) - j) * 2)), 2)
+                sa = round(
+                    random.uniform(1, max(1, remaining / (len(members_here) - j) * 2)),
+                    2,
+                )
                 sa = min(sa, remaining - 0.01 * (len(members_here) - j - 1))
             remaining -= sa
             if sa > 0.01:
-                fs.write(f"{uuid4()}\t{eid}\t{sm}\t{sa:.2f}\tNULL\t"
-                         f"{created_at.isoformat()}\t{created_at.isoformat()}\n")
+                fs.write(
+                    f"{uuid4()}\t{eid}\t{sm}\t{sa:.2f}\tNULL\t"
+                    f"{created_at.isoformat()}\t{created_at.isoformat()}\n"
+                )
                 total += 1
 
     elif split_type == "percentage":
@@ -472,12 +832,16 @@ def write_splits(fs, split_type, members_here, eid, amt, created_at, creator=Non
             if j == len(members_here) - 1:
                 pct = round(remaining_pct, 2)
             else:
-                pct = round(random.uniform(5, remaining_pct / (len(members_here) - j) * 2), 2)
+                pct = round(
+                    random.uniform(5, remaining_pct / (len(members_here) - j) * 2), 2
+                )
                 pct = min(pct, remaining_pct - 1)
             remaining_pct -= pct
             sa = round(amt * pct / 100, 2)
-            fs.write(f"{uuid4()}\t{eid}\t{sm}\t{sa:.2f}\t{pct:.2f}\t"
-                     f"{created_at.isoformat()}\t{created_at.isoformat()}\n")
+            fs.write(
+                f"{uuid4()}\t{eid}\t{sm}\t{sa:.2f}\t{pct:.2f}\t"
+                f"{created_at.isoformat()}\t{created_at.isoformat()}\n"
+            )
             total += 1
 
     return total
@@ -487,13 +851,17 @@ def write_splits(fs, split_type, members_here, eid, amt, created_at, creator=Non
 #  Main
 # ═══════════════════════════════════════════════════════════════
 
+
 def main():
     import argparse
+
     parser = argparse.ArgumentParser()
     parser.add_argument("--expenses", type=int, default=1_000_000)
     parser.add_argument("--output", default=os.path.join(BASE_DIR, "output"))
     parser.add_argument("--skip-base", action="store_true")
-    parser.add_argument("--test", action="store_true", help="Run with 1000 for quick test")
+    parser.add_argument(
+        "--test", action="store_true", help="Run with 1000 for quick test"
+    )
     args = parser.parse_args()
 
     if args.test:
@@ -529,30 +897,45 @@ def main():
         conn.commit()
     plan_ids = [r[0] for r in plan_rows]
 
-    cursor.execute("SELECT id, name FROM categories WHERE is_system = true ORDER BY name")
+    cursor.execute(
+        "SELECT id, name FROM categories WHERE is_system = true ORDER BY name"
+    )
     cat_rows = cursor.fetchall()
     if not cat_rows:
         print("  Seeding system categories...", flush=True)
         CATEGORY_LIST = [
-            "Food & Dining", "Transportation", "Groceries", "Shopping",
-            "Utilities", "Rent & Housing", "Entertainment", "Health & Medical",
-            "Education", "Travel", "Personal Care", "Others",
+            "Food & Dining",
+            "Transportation",
+            "Groceries",
+            "Shopping",
+            "Utilities",
+            "Rent & Housing",
+            "Entertainment",
+            "Health & Medical",
+            "Education",
+            "Travel",
+            "Personal Care",
+            "Others",
         ]
         for name in CATEGORY_LIST:
             cursor.execute(
                 "INSERT INTO categories (id, name, is_system, created_at, updated_at) "
                 "VALUES (gen_random_uuid(), %s, true, NOW(), NOW())",
-                (name,)
+                (name,),
             )
         conn.commit()
         # Re-fetch
-        cursor.execute("SELECT id, name FROM categories WHERE is_system = true ORDER BY name")
+        cursor.execute(
+            "SELECT id, name FROM categories WHERE is_system = true ORDER BY name"
+        )
         cat_rows = cursor.fetchall()
     categories = {r[1]: r[0] for r in cat_rows}
     cat_names = list(categories.keys())
 
     # Base category weights and amount configs
-    base_cat_weights = np.array([cfg["category_weights"].get(n, 1) for n in cat_names], dtype=np.float64)
+    base_cat_weights = np.array(
+        [cfg["category_weights"].get(n, 1) for n in cat_names], dtype=np.float64
+    )
     base_cat_weights /= base_cat_weights.sum()
     cat_amounts = {}
     for n in cat_names:
@@ -576,16 +959,32 @@ def main():
     else:
         print("[2/6] Loading existing base entities...", flush=True)
         cursor.execute("SELECT id, plan_id, name, created_at FROM users")
-        users = [{"id": r[0], "plan_id": r[1], "name": r[2], "created_at": r[3]}
-                 for r in cursor.fetchall()]
+        users = [
+            {"id": r[0], "plan_id": r[1], "name": r[2], "created_at": r[3]}
+            for r in cursor.fetchall()
+        ]
         cursor.execute("SELECT id, type, owner_id FROM contexts")
-        contexts = [{"id": r[0], "type": r[1], "owner_id": r[2]}
-                    for r in cursor.fetchall()]
-        cursor.execute("SELECT id, context_id, user_id, role, status FROM context_members")
+        contexts = [
+            {"id": r[0], "type": r[1], "owner_id": r[2]} for r in cursor.fetchall()
+        ]
+        cursor.execute(
+            "SELECT id, context_id, user_id, role, status FROM context_members"
+        )
         mem_rows = cursor.fetchall()
-        members = [{"id": r[0], "context_id": r[1], "user_id": r[2],
-                     "role": r[3], "status": r[4]} for r in mem_rows]
-        print(f"  → {len(users)} users, {len(contexts)} contexts, {len(members)} members", flush=True)
+        members = [
+            {
+                "id": r[0],
+                "context_id": r[1],
+                "user_id": r[2],
+                "role": r[3],
+                "status": r[4],
+            }
+            for r in mem_rows
+        ]
+        print(
+            f"  → {len(users)} users, {len(contexts)} contexts, {len(members)} members",
+            flush=True,
+        )
 
     # ── Build context maps ──
     member_map = defaultdict(set)
@@ -606,7 +1005,8 @@ def main():
     # Power-law user weight list
     user_assn = cfg.get("user_assignment", {})
     weighted_users, user_weights = build_user_weight_list(
-        user_ids, profiles,
+        user_ids,
+        profiles,
         user_assn.get("power_user_ratio", 0.20),
         user_assn.get("power_user_expense_share", 0.60),
     )
@@ -615,10 +1015,15 @@ def main():
     dim_names = list(cfg["user_angles"].keys())
     sample_uid = user_ids[0]
     sample_profile = profiles[sample_uid]
-    print(f"  Sample user: {sample_uid[:8]}... | {' × '.join(f'{d}={sample_profile.angles[d]}' for d in dim_names)}",
-          flush=True)
-    print(f"  Power users: {int(len(user_ids) * 0.20)} "
-          f"→ {user_assn.get('power_user_expense_share', 0.60)*100:.0f}% of expenses", flush=True)
+    print(
+        f"  Sample user: {sample_uid[:8]}... | {' × '.join(f'{d}={sample_profile.angles[d]}' for d in dim_names)}",
+        flush=True,
+    )
+    print(
+        f"  Power users: {int(len(user_ids) * 0.20)} "
+        f"→ {user_assn.get('power_user_expense_share', 0.60) * 100:.0f}% of expenses",
+        flush=True,
+    )
 
     # ── Temporal patterns ──
     print("[4/6] Pre-computing temporal distributions...", flush=True)
@@ -656,15 +1061,25 @@ def main():
     for uid in user_ids:
         profile = profiles[uid]
         mults = np.array([profile.category_mult.get(c, 1.0) for c in cat_names])
-        weights = mults * np.array([cfg["category_weights"].get(c, 1) for c in cat_names])
-        user_cat_dists[uid] = (weights / weights.sum()).tolist() if weights.sum() > 0 else \
-            (np.ones(len(cat_names)) / len(cat_names)).tolist()
+        weights = mults * np.array(
+            [cfg["category_weights"].get(c, 1) for c in cat_names]
+        )
+        user_cat_dists[uid] = (
+            (weights / weights.sum()).tolist()
+            if weights.sum() > 0
+            else (np.ones(len(cat_names)) / len(cat_names)).tolist()
+        )
 
     # ── Generate budgets ──
     print("[5/6] Generating scenario-based budgets...", flush=True)
     b_count = generate_budgets(
-        cursor, contexts, categories, cat_names, cat_amounts,
-        start_date, end_date,
+        cursor,
+        contexts,
+        categories,
+        cat_names,
+        cat_amounts,
+        start_date,
+        end_date,
         cfg.get("budget_weights", {}),
         cfg.get("budget_scenarios"),
         profiles=profiles,
@@ -682,7 +1097,10 @@ def main():
     note_shape_counts = defaultdict(int)
     note_shape_weights = cfg.get("note_shapes", {})
 
-    with open(exp_path, "w") as fe, open(spl_path, "w") as fs:
+    with (
+        open(exp_path, "w", encoding="utf-8") as fe,
+        open(spl_path, "w", encoding="utf-8") as fs,
+    ):
         for batch_start in range(0, N, BATCH):
             batch_end = min(batch_start + BATCH, N)
 
@@ -693,7 +1111,7 @@ def main():
                 uid = sampled_users[i]
                 profile = profiles[uid]
                 exp_date = sampled_dates[i]
-                if hasattr(exp_date, 'date'):
+                if hasattr(exp_date, "date"):
                     exp_date = exp_date.date()
 
                 # Apply velocity adjustment
@@ -703,7 +1121,7 @@ def main():
                     retry = 0
                     while retry < 5:
                         exp_date = random.choice(all_dates)
-                        if hasattr(exp_date, 'date'):
+                        if hasattr(exp_date, "date"):
                             exp_date = exp_date.date()
                         if apply_velocity_weight(exp_date.day, velocity) >= 0.8:
                             break
@@ -711,23 +1129,35 @@ def main():
 
                 # ── Category (per-user distribution) ──
                 salary_mult = apply_salary_day_weight(exp_date.day, cfg)
-                festival = get_active_festival(exp_date, cfg.get("seasonal_periods", []))
-                festival_suffix = get_festival_template_suffix(festival) if festival else None
+                festival = get_active_festival(
+                    exp_date, cfg.get("seasonal_periods", [])
+                )
+                festival_suffix = (
+                    get_festival_template_suffix(festival) if festival else None
+                )
 
                 # Only apply festival boost if user's religion matches
                 user_religion = profile.angles.get("religion")
                 festival_religion = festival.get("religion") if festival else None
-                religion_map = {"muslim": "islam", "hindu": "hindu",
-                                "buddhist": "buddhist", "christian": "christian"}
-                religion_match = (festival_religion is None or
-                                  religion_map.get(user_religion) == festival_religion)
+                religion_map = {
+                    "muslim": "islam",
+                    "hindu": "hindu",
+                    "buddhist": "buddhist",
+                    "christian": "christian",
+                }
+                religion_match = (
+                    festival_religion is None
+                    or religion_map.get(user_religion) == festival_religion
+                )
 
                 cat_dists = user_cat_dists.get(uid)
                 if cat_dists is not None:
                     adj = list(cat_dists)
 
                     # Salary day boost
-                    affected = cfg.get("salary_day_weights", {}).get("affected_categories", [])
+                    affected = cfg.get("salary_day_weights", {}).get(
+                        "affected_categories", []
+                    )
                     for ci, cn in enumerate(cat_names):
                         if cn in affected and salary_mult > 1.0:
                             adj[ci] *= salary_mult
@@ -779,13 +1209,21 @@ def main():
                         hour_wts[hi] *= 2.0
                 hr = random.choices(hour_pool, weights=hour_wts, k=1)[0]
                 mn = random.randint(0, 59)
-                created_at = datetime(exp_date.year, exp_date.month, exp_date.day, hr, mn)
+                created_at = datetime(
+                    exp_date.year, exp_date.month, exp_date.day, hr, mn
+                )
 
                 # ── Note ──
                 original_cat = cat
                 note, cat = generate_note(
-                    cat, amt, exp_date, profile, tpls,
-                    tpls["_merged_values"], cfg, shape_weights=note_shape_weights,
+                    cat,
+                    amt,
+                    exp_date,
+                    profile,
+                    tpls,
+                    tpls["_merged_values"],
+                    cfg,
+                    shape_weights=note_shape_weights,
                     festival_suffix=festival_suffix if religion_match else None,
                 )
                 # If ambiguous shape changed the category, use it
@@ -813,18 +1251,25 @@ def main():
                 note_out = "NULL" if note is None else ("" if note == "" else note)
                 if note_out == "":
                     note_out = "NULL"  # represent empty as NULL in TSV
-                fe.write(f"{eid}\t{cid}\t{categories.get(cat, '')}\t{creator}\t"
-                         f"{amt:.2f}\t{exp_date.isoformat()}\t"
-                         f"{note_out}\t{split}\t{settled}\t"
-                         f"{created_at.isoformat()}\t{created_at.isoformat()}\t{del_flag}\n")
+                fe.write(
+                    f"{eid}\t{cid}\t{categories.get(cat, '')}\t{creator}\t"
+                    f"{amt:.2f}\t{exp_date.isoformat()}\t"
+                    f"{note_out}\t{split}\t{settled}\t"
+                    f"{created_at.isoformat()}\t{created_at.isoformat()}\t{del_flag}\n"
+                )
 
                 # ── Write splits ──
                 if split != "none" and members_here:
-                    total_splits += write_splits(fs, split, members_here, eid, amt, created_at, creator)
+                    total_splits += write_splits(
+                        fs, split, members_here, eid, amt, created_at, creator
+                    )
 
             fe.flush()
             fs.flush()
-            print(f"  {batch_end:>8,} / {N:,} ({batch_end/N*100:.0f}%) — splits: {total_splits:,}", flush=True)
+            print(
+                f"  {batch_end:>8,} / {N:,} ({batch_end / N * 100:.0f}%) — splits: {total_splits:,}",
+                flush=True,
+            )
 
     fe_size = os.path.getsize(exp_path) / 1024 / 1024
     fs_size = os.path.getsize(spl_path) / 1024 / 1024
@@ -835,8 +1280,11 @@ def main():
     print("\n[✓] Done. DB connection closed.", flush=True)
     print("=" * 60, flush=True)
     print(f"\nLoad data:", flush=True)
-    print(f"  psql -h 127.0.0.1 -p 5435 -U spendwise -d spendwise "
-          f"-f {os.path.join(BASE_DIR, 'import.sql')}", flush=True)
+    print(
+        f"  psql -h 127.0.0.1 -p 5435 -U spendwise -d spendwise "
+        f"-f {os.path.join(BASE_DIR, 'import.sql')}",
+        flush=True,
+    )
 
     # ── Summary ──
     print("\nUser Angle Distribution:", flush=True)
@@ -846,12 +1294,18 @@ def main():
             val = profiles[uid].angles[dim]
             counts[val] += 1
         top = sorted(counts.items(), key=lambda x: -x[1])[:3]
-        print(f"  {dim}: {', '.join(f'{k}={v}' for k,v in top)}", flush=True)
+        print(f"  {dim}: {', '.join(f'{k}={v}' for k, v in top)}", flush=True)
 
     print(f"\nExpected data for ML tasks:", flush=True)
     print(f"  Auto-Categorization: {N:,} labeled note→category pairs", flush=True)
-    print(f"  Spending Forecast: {cfg['date_range_months']} months of daily timeseries", flush=True)
-    print(f"  Receipt Scan eval: ~{int(N*0.11):,} receipt-style notes (English + Bangla)", flush=True)
+    print(
+        f"  Spending Forecast: {cfg['date_range_months']} months of daily timeseries",
+        flush=True,
+    )
+    print(
+        f"  Receipt Scan eval: ~{int(N * 0.11):,} receipt-style notes (English + Bangla)",
+        flush=True,
+    )
 
 
 if __name__ == "__main__":

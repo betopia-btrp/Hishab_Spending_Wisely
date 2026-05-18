@@ -7,17 +7,16 @@ import uuid as _uuid
 
 import yaml
 
-
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
 def load_yaml(path):
-    with open(path) as f:
+    with open(path, "r", encoding="utf-8") as f:
         return yaml.safe_load(f)
 
 
 def load_lines(path):
-    with open(path) as f:
+    with open(path, "r", encoding="utf-8") as f:
         return [line.strip() for line in f if line.strip()]
 
 
@@ -28,6 +27,7 @@ def uuid4():
 def weighted_choice(options, weights):
     """Pick one option by weight. options: list, weights: list of numbers."""
     import random
+
     total = sum(weights)
     r = random.random() * total
     cumulative = 0

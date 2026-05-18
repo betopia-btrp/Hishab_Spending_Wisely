@@ -78,7 +78,10 @@ class ForecastController extends Controller
         }
 
         // Run Python script for this user
-        $pythonBin = env('PYTHON_BIN', base_path('../venv/bin/python3'));
+        $isWindows = DIRECTORY_SEPARATOR === '\\';
+        $pythonBin = env('PYTHON_BIN', $isWindows
+            ? base_path('../venv/Scripts/python.exe')
+            : base_path('../venv/bin/python3'));
         $dbHost = env('ML_FORECAST_DB_HOST', '127.0.0.1');
         $dbPort = env('ML_FORECAST_DB_PORT', '5435');
         $stderrLog = storage_path('logs/forecast-run.log');
@@ -214,7 +217,10 @@ class ForecastController extends Controller
             return response()->json(['message' => 'Forecast script not found.'], 500);
         }
 
-        $pythonBin = env('PYTHON_BIN', base_path('../venv/bin/python3'));
+        $isWindows = DIRECTORY_SEPARATOR === '\\';
+        $pythonBin = env('PYTHON_BIN', $isWindows
+            ? base_path('../venv/Scripts/python.exe')
+            : base_path('../venv/bin/python3'));
         $dbHost = env('ML_FORECAST_DB_HOST', '127.0.0.1');
         $dbPort = env('ML_FORECAST_DB_PORT', '5435');
         $stderrLog = storage_path('logs/forecast-backtest.log');

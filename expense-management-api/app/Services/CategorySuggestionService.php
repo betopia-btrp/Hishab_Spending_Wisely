@@ -14,7 +14,10 @@ class CategorySuggestionService
     public function __construct()
     {
         $this->modelPath = storage_path('app/ml/autocategorize.ftz');
-        $this->pythonBin = env('PYTHON_BIN', base_path('../venv/bin/python3'));
+        $isWindows = DIRECTORY_SEPARATOR === '\\';
+        $this->pythonBin = env('PYTHON_BIN', $isWindows
+            ? base_path('../venv/Scripts/python.exe')
+            : base_path('../venv/bin/python3'));
         $this->labelMap = $this->buildLabelMap();
     }
 
@@ -45,10 +48,13 @@ class CategorySuggestionService
             $k
         );
 
+        $isWindows = DIRECTORY_SEPARATOR === '\\';
+        $devNull = $isWindows ? 'NUL' : '/dev/null';
         $cmd = sprintf(
-            '%s -c %s 2>/dev/null',
+            '%s -c %s 2>%s',
             escapeshellcmd($this->pythonBin),
-            escapeshellarg($script)
+            escapeshellarg($script),
+            $devNull
         );
         $output = shell_exec($cmd);
 
