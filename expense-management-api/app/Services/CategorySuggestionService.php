@@ -48,21 +48,51 @@ class CategorySuggestionService
             $k
         );
 
-        $isWindows = DIRECTORY_SEPARATOR === '\\';
-        $devNull = $isWindows ? 'NUL' : '/dev/null';
-        $cmd = sprintf(
-            '%s -c %s 2>%s',
-            escapeshellcmd($this->pythonBin),
-            escapeshellarg($script),
-            $devNull
-        );
-        $output = shell_exec($cmd);
-
-        if ($output === null || $output === '') {
+        $output = $this->runPython($script);
+        if ($output === '') {
             return [];
         }
 
         return $this->parseOutput(trim($output));
+    }
+
+    protected function runPython(string $script): string
+    {
+        $process = proc_open(
+            [$this->pythonBin, '-c', $script],
+            [
+                1 => ['pipe', 'w'],
+                2 => ['pipe', 'w'],
+            ],
+            $pipes,
+            null,
+            null,
+            ['bypass_shell' => true]
+        );
+
+        if (!is_resource($process)) {
+            Log::warning('CategorySuggestion: failed to start python process', [
+                'python_bin' => $this->pythonBin,
+            ]);
+            return '';
+        }
+
+        $stdout = stream_get_contents($pipes[1]) ?: '';
+        $stderr = stream_get_contents($pipes[2]) ?: '';
+        fclose($pipes[1]);
+        fclose($pipes[2]);
+
+        $exitCode = proc_close($process);
+        if ($exitCode !== 0) {
+            Log::warning('CategorySuggestion: python prediction failed', [
+                'python_bin' => $this->pythonBin,
+                'exit_code' => $exitCode,
+                'stderr' => trim($stderr),
+            ]);
+            return '';
+        }
+
+        return $stdout;
     }
 
     protected function parseOutput(string $output): array
