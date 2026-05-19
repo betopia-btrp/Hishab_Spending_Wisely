@@ -4,11 +4,16 @@
 -- Budgets are already in DB (inserted directly by generate.py)
 --
 -- Run from project root — choose ONE method:
---   Option A (host psql):
+--   Docker PowerShell (easiest):
+--     .\ml\seeding\load.ps1
+--   Docker bash:
+--     bash ml/seeding/load.sh
+--   Host psql:
+--     cp ml/seeding/output/*.tsv /tmp/seeding/
 --     psql -h 127.0.0.1 -p 5435 -U spendwise -d spendwise -f ml/seeding/import.sql
---   Option B (docker):
+--   PowerShell:
 --     docker cp ml/seeding/output/. spendwise-db:/tmp/seeding/
---     docker exec -i spendwise-db psql -U spendwise -d spendwise -f /tmp/seeding/import.sql
+--     Get-Content ml/seeding/import.sql | docker exec -i spendwise-db psql -U spendwise -d spendwise
 -- ============================================================
 
 BEGIN;
@@ -21,18 +26,10 @@ ALTER TABLE expenses       DISABLE TRIGGER ALL;
 TRUNCATE expense_splits, expenses RESTART IDENTITY CASCADE;
 
 -- ── Load expenses ─────────────────────────────────────────────────────────
--- Option A: \copy  (client-side — use when running psql from host)
 \copy expenses (id, context_id, category_id, created_by, amount, expense_date, note, split_type, is_settled, created_at, updated_at, deleted_at) FROM '/tmp/seeding/expenses.tsv' WITH (FORMAT text, DELIMITER E'\t', NULL 'NULL');
 
--- Option B: COPY  (server-side — use when running inside Docker)
--- COPY expenses (id, context_id, category_id, created_by, amount, expense_date, note, split_type, is_settled, created_at, updated_at, deleted_at) FROM '/tmp/seeding/expenses.tsv' WITH (FORMAT text, DELIMITER E'\t', NULL 'NULL');
-
 -- ── Load expense_splits ───────────────────────────────────────────────────
--- Option A: \copy  (client-side — use when running psql from host)
 \copy expense_splits (id, expense_id, user_id, share_amount, percentage, created_at, updated_at) FROM '/tmp/seeding/expense_splits.tsv' WITH (FORMAT text, DELIMITER E'\t', NULL 'NULL');
-
--- Option B: COPY  (server-side — use when running inside Docker)
--- COPY expense_splits (id, expense_id, user_id, share_amount, percentage, created_at, updated_at) FROM '/tmp/seeding/expense_splits.tsv' WITH (FORMAT text, DELIMITER E'\t', NULL 'NULL');
 
 -- ── Re-enable triggers ────────────────────────────────────────────────────
 ALTER TABLE expenses       ENABLE TRIGGER ALL;

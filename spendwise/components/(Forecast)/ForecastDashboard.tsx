@@ -15,16 +15,110 @@ const MONTHS = [
   "July", "August", "September", "October", "November", "December",
 ];
 
+function buildBacktestChartData(
+  dailyBreakdown: { day: number; projected: number | null; actual: number }[],
+  cutoffDay: number,
+  projectedMonthEnd: number,
+) {
+  let cumActual = 0;
+  let cumProjected = 0;
+
+  const chartData = dailyBreakdown.map((d) => {
+    cumActual += d.actual;
+
+    if (d.day <= cutoffDay) {
+      cumProjected = cumActual;
+      return {
+        day: d.day,
+        actual: cumActual,
+        projected: d.day === cutoffDay ? cumProjected : null,
+      };
+    }
+
+    cumProjected += d.projected ?? 0;
+    return {
+      day: d.day,
+      actual: cumActual,
+      projected: cumProjected,
+    };
+  });
+
+  if (chartData.length > 0) {
+    chartData[chartData.length - 1].projected = projectedMonthEnd;
+  }
+
+  return chartData;
+}
+
 function filterResults(result: BacktestResult, contextId?: string) {
-  if (!contextId) return { filtered: [], totalProj: 0, totalAct: 0, weightedMape: null as number | null };
+  if (!contextId) {
+    return {
+      filtered: [],
+      totalProj: 0,
+      totalAct: 0,
+      weightedMape: null as number | null,
+      weightedMae: null as number | null,
+      baselineWeightedMape: null as number | null,
+      baselineWeightedMae: null as number | null,
+      modelWinRate: null as number | null,
+      coverageRate: null as number | null,
+      intervalRows: 0,
+      maeImprovementBdt: null as number | null,
+    };
+  }
+
   const filtered = result.results.filter(r => r.context_id === contextId);
   const totalProj = filtered.reduce((s, r) => s + r.projected, 0);
   const totalAct = filtered.reduce((s, r) => s + r.actual, 0);
-  const withMape = filtered.filter(r => r.mape !== null);
-  const weightedMape = withMape.length > 0
-    ? withMape.reduce((s, r) => s + r.mape! * r.actual, 0) / withMape.reduce((s, r) => s + r.actual, 0)
+
+  const totalWeight = filtered.reduce((s, r) => s + r.actual, 0);
+  const withMape = filtered.filter(r => r.mape !== null && r.actual > 0);
+  const weightedMape = withMape.length > 0 && totalWeight > 0
+    ? withMape.reduce((s, r) => s + (r.mape ?? 0) * r.actual, 0) / withMape.reduce((s, r) => s + r.actual, 0)
     : null;
-  return { filtered, totalProj, totalAct, weightedMape };
+
+  const withMae = filtered.filter(r => typeof r.mae_bdt === "number" && r.actual > 0);
+  const weightedMae = withMae.length > 0 && totalWeight > 0
+    ? withMae.reduce((s, r) => s + (r.mae_bdt ?? 0) * r.actual, 0) / withMae.reduce((s, r) => s + r.actual, 0)
+    : null;
+
+  const withBaselineMape = filtered.filter(r => r.baseline_mape !== null && r.baseline_mape !== undefined && r.actual > 0);
+  const baselineWeightedMape = withBaselineMape.length > 0 && totalWeight > 0
+    ? withBaselineMape.reduce((s, r) => s + (r.baseline_mape ?? 0) * r.actual, 0) / withBaselineMape.reduce((s, r) => s + r.actual, 0)
+    : null;
+
+  const withBaselineMae = filtered.filter(r => typeof r.baseline_mae_bdt === "number" && r.actual > 0);
+  const baselineWeightedMae = withBaselineMae.length > 0 && totalWeight > 0
+    ? withBaselineMae.reduce((s, r) => s + (r.baseline_mae_bdt ?? 0) * r.actual, 0) / withBaselineMae.reduce((s, r) => s + r.actual, 0)
+    : null;
+
+  const winRows = filtered.filter(r => typeof r.model_beats_baseline === "boolean");
+  const modelWinRate = winRows.length > 0
+    ? (winRows.filter(r => r.model_beats_baseline).length / winRows.length) * 100
+    : null;
+
+  const intervalRows = filtered.filter(r => r.interval_hit !== null && r.interval_hit !== undefined);
+  const coverageRate = intervalRows.length > 0
+    ? (intervalRows.filter(r => r.interval_hit).length / intervalRows.length) * 100
+    : null;
+
+  const maeImprovementBdt = weightedMae !== null && baselineWeightedMae !== null
+    ? baselineWeightedMae - weightedMae
+    : null;
+
+  return {
+    filtered,
+    totalProj,
+    totalAct,
+    weightedMape,
+    weightedMae,
+    baselineWeightedMape,
+    baselineWeightedMae,
+    modelWinRate,
+    coverageRate,
+    intervalRows: intervalRows.length,
+    maeImprovementBdt,
+  };
 }
 
 export default function ForecastDashboard() {
@@ -120,7 +214,19 @@ export default function ForecastDashboard() {
       )}
 
       {result && !loading && (() => {
-        const { filtered, totalProj, totalAct, weightedMape } = filterResults(result, currentContext?.id);
+        const {
+          filtered,
+          totalProj,
+          totalAct,
+          weightedMape,
+          weightedMae,
+          baselineWeightedMape,
+          baselineWeightedMae,
+          modelWinRate,
+          coverageRate,
+          intervalRows,
+          maeImprovementBdt,
+        } = filterResults(result, currentContext?.id);
         if (filtered.length === 0) {
           return (
             <div className="bg-white p-12 rounded-2xl shadow-sm border border-slate-100 text-center text-sm text-slate-400">
@@ -131,39 +237,62 @@ export default function ForecastDashboard() {
 
         return (
           <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
               <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Accuracy</p>
-                <p className={cn("text-2xl font-extrabold mt-1", weightedMape !== null && weightedMape < 10 ? "text-emerald-600" : weightedMape !== null && weightedMape < 20 ? "text-amber-600" : "text-rose-600")}>
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Model MAE</p>
+                <p className={cn("text-2xl font-extrabold mt-1", weightedMae !== null && weightedMae < 5000 ? "text-emerald-600" : weightedMae !== null && weightedMae < 15000 ? "text-amber-600" : "text-rose-600")}>
+                  {weightedMae !== null ? formatCurrency(weightedMae) : "N/A"}
+                </p>
+                <p className="text-[10px] text-slate-400 font-medium mt-0.5">Weighted BDT error</p>
+              </div>
+              <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Model MAPE</p>
+                <p className={cn("text-2xl font-extrabold mt-1", weightedMape !== null && weightedMape < 25 ? "text-emerald-600" : weightedMape !== null && weightedMape < 40 ? "text-amber-600" : "text-rose-600")}>
                   {weightedMape !== null ? `${weightedMape.toFixed(1)}%` : "N/A"}
                 </p>
-                <p className="text-[10px] text-slate-400 font-medium mt-0.5">MAPE</p>
+                <p className="text-[10px] text-slate-400 font-medium mt-0.5">Secondary KPI</p>
               </div>
               <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Projected</p>
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Model vs Baseline</p>
+                <p className={cn("text-2xl font-extrabold mt-1", maeImprovementBdt !== null && maeImprovementBdt >= 0 ? "text-emerald-600" : "text-rose-600")}>
+                  {maeImprovementBdt !== null ? `${maeImprovementBdt >= 0 ? "+" : ""}${formatCurrency(maeImprovementBdt)}` : "N/A"}
+                </p>
+                <p className="text-[10px] text-slate-400 font-medium mt-0.5">
+                  {modelWinRate !== null
+                    ? `${modelWinRate.toFixed(0)}% categories beat baseline`
+                    : baselineWeightedMae !== null
+                      ? `Baseline MAE: ${formatCurrency(baselineWeightedMae)}`
+                      : "Naive carry-forward"}
+                </p>
+              </div>
+              <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Interval Coverage</p>
+                <p className={cn("text-2xl font-extrabold mt-1", coverageRate !== null && coverageRate >= 70 ? "text-emerald-600" : coverageRate !== null && coverageRate >= 50 ? "text-amber-600" : "text-rose-600")}>
+                  {coverageRate !== null ? `${coverageRate.toFixed(0)}%` : "N/A"}
+                </p>
+                <p className="text-[10px] text-slate-400 font-medium mt-0.5">
+                  {intervalRows > 0
+                    ? `${intervalRows} rows @ ${(result.interval_level ?? 0.8) * 100}% interval`
+                    : "No interval rows"}
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Projected Total</p>
                 <p className="text-2xl font-extrabold text-slate-900 mt-1">{formatCurrency(totalProj)}</p>
-                <p className="text-[10px] text-slate-400 font-medium mt-0.5">Total at cutoff</p>
-              </div>
-              <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Actual</p>
-                <p className="text-2xl font-extrabold text-slate-900 mt-1">{formatCurrency(totalAct)}</p>
-                <p className="text-[10px] text-slate-400 font-medium mt-0.5">Total actual</p>
-              </div>
-              <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Month</p>
-                <p className="text-2xl font-extrabold text-slate-900 mt-1">{MONTHS[result.target_month - 1].slice(0, 3)} {result.target_year}</p>
                 <p className="text-[10px] text-slate-400 font-medium mt-0.5">Cutoff day {result.cutoff_day}</p>
+              </div>
+              <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Actual Total</p>
+                <p className="text-2xl font-extrabold text-slate-900 mt-1">{formatCurrency(totalAct)}</p>
+                <p className="text-[10px] text-slate-400 font-medium mt-0.5">{MONTHS[result.target_month - 1]} {result.target_year}</p>
               </div>
             </div>
 
             {filtered.map((cat) => {
-              let cumActual = 0;
-              let cumProj = 0;
-              const chartData = cat.daily_breakdown.map((d) => {
-                cumActual += d.actual;
-                if (d.projected !== null) cumProj += d.projected;
-                return { day: d.day, actual: cumActual, projected: d.projected !== null ? cumProj : null };
-              });
+              const chartData = buildBacktestChartData(cat.daily_breakdown, result.cutoff_day, cat.projected);
 
               return (
                 <div key={cat.category_name} className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
@@ -181,12 +310,31 @@ export default function ForecastDashboard() {
                       <span>Budget: <strong className="text-slate-700">{formatCurrency(cat.budget)}</strong></span>
                       <span>Projected: <strong className="text-amber-600">{formatCurrency(cat.projected)}</strong></span>
                       <span>Actual: <strong className="text-slate-700">{formatCurrency(cat.actual)}</strong></span>
+                      {typeof cat.mae_bdt === "number" && (
+                        <span>MAE: <strong className="text-slate-700">{formatCurrency(cat.mae_bdt)}</strong></span>
+                      )}
                       {cat.mape !== null && (
                         <span className={cn("font-bold", cat.mape < 10 ? "text-emerald-600" : cat.mape < 20 ? "text-amber-600" : "text-rose-600")}>
                           {cat.mape.toFixed(1)}% MAPE
                         </span>
                       )}
                     </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-3 text-[10px] text-slate-500 mb-3">
+                    {typeof cat.baseline_projected === "number" && (
+                      <span>Baseline: <strong className="text-slate-700">{formatCurrency(cat.baseline_projected)}</strong></span>
+                    )}
+                    {typeof cat.model_beats_baseline === "boolean" && (
+                      <span className={cn("font-bold", cat.model_beats_baseline ? "text-emerald-600" : "text-rose-600")}>
+                        {cat.model_beats_baseline ? "Beats baseline" : "Worse than baseline"}
+                      </span>
+                    )}
+                    {cat.pred_lower !== null && cat.pred_lower !== undefined && cat.pred_upper !== null && cat.pred_upper !== undefined && (
+                      <span className={cn("font-bold", cat.interval_hit ? "text-emerald-600" : "text-amber-700")}>
+                        Interval: {formatCurrency(cat.pred_lower)} - {formatCurrency(cat.pred_upper)}
+                      </span>
+                    )}
                   </div>
 
                   <div className="h-48">
