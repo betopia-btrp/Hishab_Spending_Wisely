@@ -154,16 +154,36 @@ export interface PeriodConfig {
 
 export interface BacktestResult {
   overall_mape: number | null;
+  overall_mae_bdt?: number | null;
+  mean_mae_bdt?: number | null;
+  baseline_overall_mape?: number | null;
+  baseline_overall_mae_bdt?: number | null;
+  baseline_mean_mae_bdt?: number | null;
+  mae_improvement_bdt?: number | null;
+  mae_improvement_pct?: number | null;
+  model_win_rate?: number | null;
+  interval_level?: number | null;
+  coverage_rate?: number | null;
+  interval_rows?: number | null;
   target_month: number;
   target_year: number;
   cutoff_day: number;
   results: {
     context_id: string;
+    category_id?: string | null;
     category_name: string;
     budget: number;
     projected: number;
     actual: number;
     mape: number | null;
+    mae_bdt?: number;
+    baseline_projected?: number;
+    baseline_mape?: number | null;
+    baseline_mae_bdt?: number;
+    model_beats_baseline?: boolean;
+    pred_lower?: number | null;
+    pred_upper?: number | null;
+    interval_hit?: boolean | null;
     alert_tier: string | null;
     daily_breakdown: { day: number; projected: number | null; actual: number }[];
   }[];

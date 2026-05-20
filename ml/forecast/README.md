@@ -12,7 +12,7 @@ expense data (last 90 days)
    │ hist_n_days │
    │   >= 7?     │
    ├─── YES ─────┤
-   │  Prophet    │  ← Bayesian time-series model
+   │  LightGBM   │  ← Gradient-boosted tree regressor
    │  + sanity   │
    │  cap (3x)   │
    ├─── NO ──────┤
@@ -36,49 +36,29 @@ projected_total = spent_so_far + forecast_remaining
 
 ---
 
-## Model Choice: Prophet
+## Model Choice
 
-### What is Prophet?
+Three ML models are available, all sharing the same feature pipeline and public API. XGBoost is the default.
 
-[Prophet](https://facebook.github.io/prophet/) is an open-source time-series forecasting library developed by Meta (Facebook). It decomposes time-series data into:
+| Model | Module | Regressor | Best For |
+|---|---|---|---|
+| **XGBoost** (default) | `xgboost_model.py` | `XGBRegressor` | Best accuracy on this data |
+| **LightGBM** | `lightbgm.py` | `LGBMRegressor` | General purpose, fast |
+| **Random Forest** | `random_forest.py` | `RandomForestRegressor` | Robust to outliers |
 
+Select via `--model` flag:
+```bash
+python3 ml/forecast/run.py --user-id <uuid> --model random_forest
+python3 ml/forecast/run.py --user-id <uuid> --model xgboost
 ```
-y(t) = trend(t) + weekly(t) + yearly(t) + holidays(t) + error
-```
 
-It uses a **Bayesian additive regression model** with:
-- A piecewise-linear trend with automatic changepoint detection
-- Weekly seasonality (users spend differently on weekends)
-- Custom seasonality (month-end bill payment cycle)
-- No daily seasonality (expenses are daily aggregates, not hourly)
+### Why Tree Models (not linear / deep learning)
 
-### Why Prophet Instead of Alternatives?
-
-| Model | Train Time | Data Required | Handles Missing Days | Handles Seasonality | Confidence Intervals |
-|---|---|---|---|---|---|
-| **Prophet** ✅ | ~3s | 7+ days | ✅ (native) | ✅ (weekly, custom) | ✅ |
-| **ARIMA** | ~2s | 30+ days | ❌ (needs imputation) | ⚠️ (manual) | ✅ |
-| **Holt-Winters** | ~1s | 14+ days | ❌ (needs imputation) | ✅ (additive) | ❌ |
-| **XGBoost** | ~1s | 100+ rows | ❌ (needs feature eng) | ⚠️ (hand-crafted) | ❌ |
-| **LSTM** | ~5min | 1000+ rows | ❌ | ✅ | ❌ |
-
-**Decision rationale:**
-
-1. **Data sparsity**: Most budget lines have 7–23 data points over 90 days. Prophet's Bayesian foundation handles sparsity gracefully — it was designed exactly for this scenario.
-
-2. **Missing days**: Users don't log expenses every day. Prophet treats missing dates as non-events (no imputation needed). ARIMA and Holt-Winters require filling gaps, which introduces bias.
-
-3. **Seasonality**: Weekend vs weekday spending is significant in Bangladesh (Friday peak). Prophet's `weekly_seasonality=True` captures this automatically. ARIMA needs manual seasonal differencing.
-
-4. **Confidence intervals**: Prophet outputs uncertainty bounds (`yhat_lower`, `yhat_upper`). This is critical for alert tier decisions — a wide interval means low confidence, and we can fall back to a simpler model.
-
-5. **Interpretability**: Prophet's parameters (`changepoint_prior_scale`, `seasonality_prior_scale`) have clear meanings. An admin can tune them without understanding Bayesian inference.
-
-6. **Training speed**: ~3 seconds per fit. With ~600 Prophet-ready budget lines, the full run takes ~30 minutes sequentially, but runs per-user on dashboard load in ~3-6 seconds.
-
-### Why Not Deep Learning?
-
-Deep learning (LSTM, Transformers) requires thousands of data points per time series to outperform simpler models. A typical user has ~50-100 expenses in 90 days spread across 12 categories. That's 4-8 data points per category — far too few for neural networks. Even aggregated at the context level, we rarely exceed 200 data points.
+1. **Zero-inflated target** — most days have 0 spend. Linear models predict negatives; trees handle this naturally with leaf binning.
+2. **Non-linear calendar effects** — the U-shape across a month (salary days → mid-month trough → end-month rush) is piecewise, not linear.
+3. **Feature interactions** — `Ramadan × weekend`, `festival × day_of_month` — trees find splits without explicit interaction terms.
+4. **Sparse per-budget histories** — 7+ active days out of 90. Too few for neural nets (LSTM/Transformer need 1000s of points).
+5. **Sub-second training** — all three fit ≤90 rows in <150ms per model.
 
 ---
 
@@ -88,11 +68,15 @@ Deep learning (LSTM, Transformers) requires thousands of data points per time se
 
 | File | Purpose |
 |---|---|
-| `ml/forecast/run.py` | Entry point. Called by Laravel's `POST /api/forecasts/run`. Accepts `--user-id` flag. Queries budgets + expenses, orchestrates model fitting. |
-| `ml/forecast/prophet_model.py` | Prophet fitting on last 90 days of data. Returns forecasted remaining amount. Applies sanity cap at 3× historical average. |
+| `ml/forecast/run.py` | Entry point. Accepts `--user-id` + optional `--model` flag. Queries budgets + expenses, orchestrates model fitting. |
+| `ml/forecast/_features.py` | Shared feature pipeline: calendar features, rolling/lag features, dense daily, sanity cap, generic forecast factory. |
+| `ml/forecast/lightbgm.py` | LightGBM engine (~50 lines, imports from `_features.py`). |
+| `ml/forecast/random_forest.py` | Random Forest engine (drop-in replacement for LightGBM). |
+| `ml/forecast/xgboost_model.py` | XGBoost engine (drop-in replacement for LightGBM). |
+| `ml/forecast/compare_models.py` | Runs all 3 models on the same backtest and prints a comparison table. |
 | `ml/forecast/linear_fallback.py` | Linear projection: `(spent_so_far / days_passed) × days_remaining`. Uses historical daily average when current month has <3 days of logged expenses. |
 | `ml/forecast/alert_tiers.py` | 3-tier alert evaluation: overspend → on_track_exceed → early_warning |
-| `ml/forecast/requirements.txt` | Prophet 1.3+, psycopg2-binary, pandas, numpy |
+| `ml/forecast/requirements.txt` | lightgbm, psycopg2-binary, pandas, numpy, scikit-learn, xgboost |
 | `database/migrations/*_create_ml_forecasts_table.php` | Laravel migration for `ml_forecasts` table |
 
 ### Data Flow
@@ -117,7 +101,7 @@ shell_exec(python3 ml/forecast/run.py --user-id <uuid>)
   │      ├─ Compute historical daily average from 90-day window
   │      │
   │      ├─ if hist_n_days >= 7:
-  │      │     Prophet(weekly=True, month_end=True)
+  │      │     LightGBM(calendar features)
   │      │     → predicted_remaining
   │      │     Apply sanity cap: if daily_rate > 3× historical avg, clamp
   │      │
@@ -143,7 +127,7 @@ Frontend shows alerts on Dashboard + Budgets page
 | Window | Duration | Used For |
 |---|---|---|
 | Current month to-date | 1–31 days | `spent_so_far` calculation |
-| Last 90 days | 90 calendar days | Prophet training data (≥7 days with expenses) |
+| Last 90 days | 90 calendar days | LightGBM training data (≥7 days with expenses) |
 | Last 3 months (monthly) | 3 calendar months | Historical daily average fallback |
 
 The 90-day window captures recent spending behavior while being short enough to adapt to lifestyle changes (new job, moved cities, etc.).
@@ -152,7 +136,7 @@ The 90-day window captures recent spending behavior while being short enough to 
 
 ## Sanity Cap
 
-Prophet can produce absurd projections when there's a single large outlier. Example: a user spends 26,300 BDT on a laptop in one day. Without a cap, Prophet projects 9,000/day for the rest of the month → 171,000 total on a 4,180 budget.
+The model can produce absurd projections when there's a single large outlier. Example: a user spends 26,300 BDT on a laptop in one day. Without a cap, projections can explode for the remaining month.
 
 The sanity clamp:
 
@@ -177,6 +161,25 @@ Where `MAX_MULTIPLIER = 3.0` and `historical_daily_avg` is the total spend over 
 | `none` | Everything else | Green: "On Track" |
 
 Evaluated in order — if `spent_so_far > budget`, it's already overspent regardless of projection.
+
+---
+
+## Backtest Evaluation Policy
+
+Backtest output (`POST /api/forecasts/backtest`) includes:
+- **Model metrics**: `overall_mae_bdt`, `mean_mae_bdt`, `overall_mape`
+- **Baseline metrics**: `baseline_overall_mae_bdt`, `baseline_overall_mape`
+- **Comparison**: `mae_improvement_bdt`, `mae_improvement_pct`, `model_win_rate`
+- **Interval calibration**: `interval_level`, `coverage_rate`, `interval_rows`
+
+Per-category rows include:
+- `mae_bdt`, `baseline_mae_bdt`, `baseline_projected`
+- `pred_lower`, `pred_upper`, `interval_hit`
+
+Guidance:
+- Do not use regression "accuracy" as a primary metric.
+- Use MAE (BDT) + baseline improvement + interval coverage as ship criteria.
+- Keep MAPE as a secondary KPI; `<25%` is generally acceptable for spend forecasting.
 
 ---
 
@@ -228,31 +231,56 @@ This is called automatically when the user opens the Dashboard. The Budgets page
 | **<7 days of data** | Linear fallback with historical daily average |
 | **<3 days of data in current month** | Uses last 3 months' total / days to estimate daily rate |
 | **Single large outlier** | Sanity cap at 3× historical daily average |
-| **Negative Prophet prediction** | Clamped to 0 |
+| **Negative model prediction** | Clamped to 0 |
 | **Budget == 0** | Skip — division by zero guard |
 | **Group contexts** | Aggregates all members' expenses for that context |
 | **NULL category_id (base budget)** | Summed all categories; DELETE + INSERT avoids UNIQUE constraint issue |
-| **Prophet fitting error** | Falls back to linear projection |
+| **LightGBM fitting error** | Falls back to linear projection |
 
 ---
 
 ## Performance
 
-- **Prophet fit**: ~3 seconds per budget (including compilation)
+- **ML model fit**: sub-second per budget for all 3 models (≤90 rows, 20 features)
 - **Linear fallback**: <1ms
 - **Full user run**: ~3-10 seconds for typical user (1-3 contexts, 3-10 budgets)
 - **DB writes**: ~30ms for INSERT batch
 
-The average admin user will experience <5s latency on dashboard load. No background queue needed — it runs synchronously.
+The average user will experience <5s latency on dashboard load. No background queue needed — it runs synchronously.
 
 ---
+
+## Model Comparison
+
+Run all 3 models on the same backtest to compare accuracy:
+
+```bash
+python3 ml/forecast/compare_models.py \
+    --user-id <uuid> \
+    --target-month 5 \
+    --target-year 2026 \
+    --cutoff-day 15
+```
+
+Output:
+```
+  Model Comparison: user abc12345.., 5/2026, cutoff day 15
+  ══════════════════════════════════════════════════════════════════════
+  Model                MAPE   MAE(BDT)   WinRate   Coverage
+  ─────────────────────────────────────────────────────────────────
+  lightgbm            12.3%    450.2 BDT   58.3%     75.0%
+  random_forest       14.1%    510.8 BDT   52.1%     72.5%
+  xgboost             11.8%    435.3 BDT   61.5%     77.5%
+
+  Best: xgboost (MAE=435.3 BDT)
+```
 
 ## Future Improvements
 
 | Area | Improvement | Effort |
 |---|---|---|
 | **Accuracy** | Replace sanity cap with quantile-based outlier detection | Low |
-| **Speed** | Cache Prophet models and only re-fit when new data arrives | Medium |
-| **Backtesting** | Monthly report: projected vs actual by category with MAPE | Low |
-| **Confidence** | Expose `yhat_upper` / `yhat_lower` in the UI | Low |
-| **Switching cost** | Replace Prophet with lightweight Holt-Winters if Prophet compilation time is too high | Medium |
+| **Speed** | Cache model artifacts and only re-fit when new data arrives | Medium |
+| **Backtesting** | Add longitudinal MAE trend and baseline win-rate tracking | Low |
+| **Confidence** | Expose `pred_lower` / `pred_upper` interval bands in the UI | Low |
+| **Model** | Auto-select best model per user via compare_models results | Medium |

@@ -860,7 +860,35 @@ def main():
     parser.add_argument("--output", default=os.path.join(BASE_DIR, "output"))
     parser.add_argument("--skip-base", action="store_true")
     parser.add_argument(
+        "--base-users",
+        type=int,
+        default=None,
+        help="Override cfg.base_users (use lower value for denser per-user logs).",
+    )
+    parser.add_argument(
+        "--date-range-months",
+        type=int,
+        default=None,
+        help="Override cfg.date_range_months (recommended: 12 for forecasting).",
+    )
+    parser.add_argument(
+        "--power-user-ratio",
+        type=float,
+        default=None,
+        help="Override cfg.user_assignment.power_user_ratio (0..1).",
+    )
+    parser.add_argument(
+        "--power-user-expense-share",
+        type=float,
+        default=None,
+        help="Override cfg.user_assignment.power_user_expense_share (0..1).",
+    )
+    parser.add_argument(
         "--test", action="store_true", help="Run with 1000 for quick test"
+    )
+    parser.add_argument(
+        "--truncate", action="store_true",
+        help="Truncate all tables before seeding (deletes all existing data)."
     )
     args = parser.parse_args()
 
@@ -878,10 +906,44 @@ def main():
     cfg = load_yaml(os.path.join(BASE_DIR, "config.yaml"))
     tpls = _load_templates()
 
+    # Optional overrides for denser forecast-training data generation.
+    if args.base_users is not None:
+        cfg["base_users"] = int(args.base_users)
+    if args.date_range_months is not None:
+        cfg["date_range_months"] = int(args.date_range_months)
+    if args.power_user_ratio is not None:
+        cfg.setdefault("user_assignment", {})
+        cfg["user_assignment"]["power_user_ratio"] = float(args.power_user_ratio)
+    if args.power_user_expense_share is not None:
+        cfg.setdefault("user_assignment", {})
+        cfg["user_assignment"]["power_user_expense_share"] = float(
+            args.power_user_expense_share
+        )
+
+    print(
+        f"Config: users={cfg['base_users']}, months={cfg['date_range_months']}, "
+        f"power_ratio={cfg.get('user_assignment', {}).get('power_user_ratio', 0.20):.2f}, "
+        f"power_share={cfg.get('user_assignment', {}).get('power_user_expense_share', 0.60):.2f}",
+        flush=True,
+    )
+
     # ── DB Connect ──
     conn = psycopg2.connect(**DB_CONFIG)
     cursor = conn.cursor()
     print("[1/6] Connected to DB", flush=True)
+
+    # ── Truncate all data if requested ──
+    if args.truncate:
+        print("  Truncating all tables...", flush=True)
+        cursor.execute("ALTER TABLE expense_splits DISABLE TRIGGER ALL")
+        cursor.execute("ALTER TABLE expenses DISABLE TRIGGER ALL")
+        cursor.execute("TRUNCATE TABLE expense_splits, expenses, budgets, "
+                       "ml_forecasts, notifications, context_members, contexts, "
+                       "users, plans, categories RESTART IDENTITY CASCADE")
+        cursor.execute("ALTER TABLE expenses ENABLE TRIGGER ALL")
+        cursor.execute("ALTER TABLE expense_splits ENABLE TRIGGER ALL")
+        conn.commit()
+        print("  Done.", flush=True)
 
     # Seed plans + categories if empty (standalone mode — no Laravel dependency)
     cursor.execute("SELECT id, name FROM plans")
@@ -1084,6 +1146,8 @@ def main():
         cfg.get("budget_scenarios"),
         profiles=profiles,
         config=cfg,
+        total_expenses=N,
+        base_users=cfg["base_users"],
     )
     conn.commit()
     print(f"  → {b_count} budgets", flush=True)
@@ -1127,6 +1191,14 @@ def main():
                             break
                         retry += 1
 
+                # ── Clamp to user's active range ──
+                active_range = active_ranges.get(uid)
+                if active_range is not None:
+                    active_start, active_end = active_range
+                    if exp_date < active_start or exp_date > active_end:
+                        active_window = (active_end - active_start).days
+                        exp_date = active_start + timedelta(days=random.randint(0, max(0, active_window)))
+
                 # ── Category (per-user distribution) ──
                 salary_mult = apply_salary_day_weight(exp_date.day, cfg)
                 festival = get_active_festival(
@@ -1168,6 +1240,15 @@ def main():
                             if cn in cat_names:
                                 ci = cat_names.index(cn)
                                 adj[ci] *= boost
+
+                    # Day-of-week category weights (creates natural zero-spend days)
+                    cat_dow = cfg.get("category_day_weights", {})
+                    if cat_dow:
+                        dow = exp_date.weekday()
+                        for ci, cn in enumerate(cat_names):
+                            dow_weights = cat_dow.get(cn)
+                            if dow_weights:
+                                adj[ci] *= dow_weights[dow]
 
                     total = sum(adj)
                     adj = [d / total for d in adj]

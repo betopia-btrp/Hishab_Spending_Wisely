@@ -20,6 +20,23 @@ category_weights:
   Personal Care: 0.5
   Others: 0.5
 
+# ─── Category × Day-of-Week Weights ───
+# Each category gets a weight per weekday (Mon=0 .. Sun=6).
+# Lower weight → fewer expenses on that day, creating natural zero-spend days.
+category_day_weights:
+  Food & Dining:   [1.0, 0.9, 0.9, 1.0, 1.5, 1.8, 1.2]  # weekends out
+  Transportation:  [1.2, 1.2, 1.1, 1.1, 1.0, 0.8, 0.7]  # weekdays commute
+  Groceries:       [0.3, 0.3, 0.4, 0.5, 0.6, 2.5, 2.0]  # bazaar days Fri-Sat
+  Shopping:        [0.5, 0.4, 0.5, 0.5, 0.9, 2.0, 1.8]  # weekend shopping
+  Utilities:       [1.5, 1.5, 1.5, 1.5, 1.0, 0.3, 0.3]  # weekdays (office)
+  Rent & Housing:  [1.5, 1.5, 1.5, 1.5, 1.0, 0.2, 0.2]  # month-end office days
+  Entertainment:   [0.4, 0.3, 0.3, 0.4, 1.2, 2.5, 1.8]  # Fri-Sat nights
+  Health & Medical: [1.2, 1.2, 1.2, 1.2, 1.0, 0.6, 0.6]  # weekdays clinic
+  Education:       [1.8, 1.8, 1.8, 1.8, 0.5, 0.1, 0.1]  # school days
+  Travel:          [0.5, 0.5, 0.5, 0.5, 1.5, 2.0, 1.5]  # weekend trips
+  Personal Care:   [1.0, 0.8, 0.8, 1.0, 1.2, 1.5, 1.2]  # slightly weekend
+  Others:          [0.8, 0.8, 0.8, 0.8, 1.0, 1.2, 1.0]  # neutral
+
 # ─── Amount Distribution (BDT) ───
 # Uses log-normal: mu = ln(mean), sigma = 0.5
 amount_distribution:

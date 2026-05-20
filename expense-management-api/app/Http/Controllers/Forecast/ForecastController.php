@@ -12,10 +12,16 @@ use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 class ForecastController extends Controller
 {
+    private function mlServiceUrl(): string
+    {
+        return env('ML_SERVICE_URL', 'http://127.0.0.1:5100');
+    }
+
     /**
      * GET /api/forecasts?context_id=X&month=M&year=Y
      * Return cached forecasts for a context.
@@ -33,7 +39,6 @@ class ForecastController extends Controller
         $month = $request->input('month', now()->month);
         $year  = $request->input('year', now()->year);
 
-        // Ensure user is a member of this context
         $member = ContextMember::where('context_id', $contextId)
             ->where('user_id', $user->id)
             ->where('status', 'active')
@@ -56,19 +61,15 @@ class ForecastController extends Controller
 
     /**
      * POST /api/forecasts/run
-     * Trigger forecast for the authenticated user.
+     * Trigger forecast for the authenticated user via ML microservice.
+     * Skips if fresh data (less than 4 hours old) already exists,
+     * unless `force=true` is passed in the request body.
      */
     public function run(Request $request): JsonResponse
     {
         $user = auth()->user();
+        $force = $request->input('force', false);
 
-        // Path to Python script
-        $scriptPath = base_path('../ml/forecast/run.py');
-        if (!file_exists($scriptPath)) {
-            return response()->json(['message' => 'Forecast script not found.'], 500);
-        }
-
-        // Find all contexts the user belongs to
         $contexts = Context::whereHas('members', function ($q) use ($user) {
             $q->where('user_id', $user->id)->where('status', 'active');
         })->get();
@@ -77,42 +78,51 @@ class ForecastController extends Controller
             return response()->json(['forecasts' => [], 'notifications' => []]);
         }
 
-        // Run Python script for this user
-        $isWindows = DIRECTORY_SEPARATOR === '\\';
-        $pythonBin = env('PYTHON_BIN', $isWindows
-            ? base_path('../venv/Scripts/python.exe')
-            : base_path('../venv/bin/python3'));
-        $dbHost = env('ML_FORECAST_DB_HOST', '127.0.0.1');
-        $dbPort = env('ML_FORECAST_DB_PORT', '5435');
-        $stderrLog = storage_path('logs/forecast-run.log');
-        $cmd = sprintf(
-            'cd %s && %s %s --user-id %s --db-host %s --db-port %s 2>%s',
-            escapeshellarg(dirname($scriptPath)),
-            escapeshellcmd($pythonBin),
-            escapeshellarg($scriptPath),
-            escapeshellarg($user->id),
-            escapeshellarg($dbHost),
-            escapeshellarg($dbPort),
-            escapeshellarg($stderrLog)
-        );
-        $output = shell_exec($cmd);
+        $month = now()->month;
+        $year = now()->year;
+        $ctxIds = $contexts->pluck('id');
 
-        if ($output === null) {
-            return response()->json(['message' => 'Forecast execution failed.'], 500);
+        // Check for fresh cached forecasts (less than 4 hours old) unless forced
+        $shouldRun = $force;
+        if (!$shouldRun) {
+            $freshCutoff = now()->subHours(4);
+            $shouldRun = !DB::table('ml_forecasts')
+                ->whereIn('context_id', $ctxIds)
+                ->where('month', $month)
+                ->where('year', $year)
+                ->where('created_at', '>=', $freshCutoff)
+                ->exists();
         }
 
-        // Fetch the updated forecasts
+        if ($shouldRun) {
+            try {
+                $response = Http::timeout(120)->post($this->mlServiceUrl() . '/forecast', [
+                    'user_id' => $user->id,
+                    'db_host' => env('ML_FORECAST_DB_HOST', '127.0.0.1'),
+                    'db_port' => (int) env('ML_FORECAST_DB_PORT', '5435'),
+                ]);
+
+                if ($response->failed()) {
+                    Log::error('ML service error: ' . $response->body());
+                    return response()->json(['message' => 'Forecast execution failed.'], 500);
+                }
+            } catch (\Exception $e) {
+                Log::error('ML service unreachable: ' . $e->getMessage());
+                return response()->json(['message' => 'ML service unreachable. Start it with: powershell -File ml/service/run.ps1'], 500);
+            }
+        }
+
+        // Fetch forecasts from DB
         $forecasts = DB::table('ml_forecasts')
-            ->whereIn('context_id', $contexts->pluck('id'))
-            ->where('month', now()->month)
-            ->where('year', now()->year)
+            ->whereIn('context_id', $ctxIds)
+            ->where('month', $month)
+            ->where('year', $year)
             ->get();
 
-        // Create notifications for new alerts (dedup by context+category+tier+date)
+        // Create notifications for new alerts
         $today = now()->format('Y-m-d');
         $newNotifications = [];
 
-        // Fetch notifications created today for budget alerts
         $existingNotifs = \App\Models\User::join('notifications', 'notifications.notifiable_id', '=', 'users.id')
             ->where('notifications.type', \App\Notifications\BudgetAlertNotification::class)
             ->whereIn('notifications.notifiable_id', $contexts->pluck('owner_id')->filter())
@@ -123,7 +133,6 @@ class ForecastController extends Controller
             ->values();
 
         $alertKeyExists = function ($contextId, $categoryId, $tier) use ($existingNotifs) {
-            $catKey = $categoryId ?? '__null__';
             return $existingNotifs->contains(fn($n) =>
                 ($n['context_id'] ?? null) === $contextId
                 && ($n['category_name'] ?? '__null__') === ($categoryId ? '' : '__null__')
@@ -136,7 +145,6 @@ class ForecastController extends Controller
                 continue;
             }
 
-            // Resolve context + category
             $context = Context::find($f->context_id);
             $category = $f->category_id ? Category::find($f->category_id) : null;
 
@@ -144,12 +152,10 @@ class ForecastController extends Controller
                 continue;
             }
 
-            // Skip if notification already sent today for this alert
             if ($alertKeyExists($f->context_id, $f->category_id, $f->alert_tier)) {
                 continue;
             }
 
-            // Notify all active members of this context
             $members = ContextMember::where('context_id', $f->context_id)
                 ->where('status', 'active')
                 ->get();
@@ -186,7 +192,7 @@ class ForecastController extends Controller
 
     /**
      * POST /api/forecasts/backtest
-     * Run forecast as if today were cutoff_day, compare with actual full-month spend.
+     * Run backtest via ML microservice.
      */
     public function backtest(Request $request): JsonResponse
     {
@@ -212,49 +218,25 @@ class ForecastController extends Controller
             return response()->json(['message' => 'Forbidden.'], 403);
         }
 
-        $scriptPath = base_path('../ml/forecast/run.py');
-        if (!file_exists($scriptPath)) {
-            return response()->json(['message' => 'Forecast script not found.'], 500);
+        try {
+            $response = Http::timeout(120)->post($this->mlServiceUrl() . '/backtest', [
+                'user_id' => $user->id,
+                'month' => $month,
+                'year' => $year,
+                'cutoff_day' => $cutoffDay,
+                'db_host' => env('ML_FORECAST_DB_HOST', '127.0.0.1'),
+                'db_port' => (int) env('ML_FORECAST_DB_PORT', '5435'),
+            ]);
+
+            if ($response->failed()) {
+                Log::error('ML service error: ' . $response->body());
+                return response()->json(['message' => 'Backtest execution failed.'], 500);
+            }
+
+            return response()->json($response->json());
+        } catch (\Exception $e) {
+            Log::error('ML service unreachable: ' . $e->getMessage());
+            return response()->json(['message' => 'ML service unreachable. Start it with: powershell -File ml/service/run.ps1'], 500);
         }
-
-        $isWindows = DIRECTORY_SEPARATOR === '\\';
-        $pythonBin = env('PYTHON_BIN', $isWindows
-            ? base_path('../venv/Scripts/python.exe')
-            : base_path('../venv/bin/python3'));
-        $dbHost = env('ML_FORECAST_DB_HOST', '127.0.0.1');
-        $dbPort = env('ML_FORECAST_DB_PORT', '5435');
-        $stderrLog = storage_path('logs/forecast-backtest.log');
-        $cmd = sprintf(
-            'cd %s && %s %s --user-id %s --target-month %d --target-year %d --cutoff-day %d --db-host %s --db-port %s 2>%s',
-            escapeshellarg(dirname($scriptPath)),
-            escapeshellcmd($pythonBin),
-            escapeshellarg($scriptPath),
-            escapeshellarg($user->id),
-            $month,
-            $year,
-            $cutoffDay,
-            escapeshellarg($dbHost),
-            escapeshellarg($dbPort),
-            escapeshellarg($stderrLog)
-        );
-        $output = shell_exec($cmd);
-
-        if ($output === null) {
-            return response()->json(['message' => 'Backtest execution failed.'], 500);
-        }
-
-        $decoded = json_decode($output, true);
-        if (!$decoded || !isset($decoded['backtest'])) {
-            Log::error("Backtest parse error for user {$user->id}. stderr in {$stderrLog}");
-            return response()->json(['message' => 'Invalid backtest output.'], 500);
-        }
-
-        $decoded = json_decode($output, true);
-        if (!$decoded || !isset($decoded['backtest'])) {
-            Log::error("Backtest parse error for user {$user->id}: " . substr($output, 0, 500));
-            return response()->json(['message' => 'Invalid backtest output.'], 500);
-        }
-
-        return response()->json($decoded);
     }
 }

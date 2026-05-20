@@ -1,0 +1,30 @@
+{
+  "default_branch": "master",
+  "branches": [
+    "No-issue-left",
+    "feat/ml",
+    "feat/subscription",
+    "feature/new-branch",
+    "feature/reminder-branch",
+    "fix/ai/ml",
+    "master"
+  ],
+  "parent": {
+    "No-issue-left": "master",
+    "feat/ml": "master",
+    "feat/subscription": "master",
+    "feature/new-branch": "master",
+    "feature/reminder-branch": "master",
+    "fix/ai/ml": "master",
+    "master": null
+  },
+  "order": [
+    "master",
+    "No-issue-left",
+    "feat/ml",
+    "feat/subscription",
+    "feature/new-branch",
+    "feature/reminder-branch",
+    "fix/ai/ml"
+  ]
+}

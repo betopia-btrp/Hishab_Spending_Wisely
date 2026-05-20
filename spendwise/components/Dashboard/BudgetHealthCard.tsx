@@ -142,13 +142,8 @@ function BudgetRowChart({ budget, contextId, dateFrom, dateTo }: { budget: Budge
     <div className="overflow-visible">
       <div className="flex items-center justify-between mb-2">
         <p className="text-[11px] font-semibold text-slate-500">
-          {categoryLabel} · {dateLabel}
+          {categoryLabel} &middot; {dateLabel}
         </p>
-        {budgetLine > 0 && (
-          <p className="text-[10px] font-semibold" style={{ color: COLORS.budgetLine }}>
-            Budget: {yTickFormat(budgetLine)}
-          </p>
-        )}
       </div>
       <div className="h-48">
         <ResponsiveContainer width="100%" height="100%">

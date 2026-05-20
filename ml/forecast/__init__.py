@@ -1,1 +1,1 @@
-# SpendWise Forecasting
+# SpendWise Forecasting package
