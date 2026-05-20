@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -49,15 +50,20 @@ class ReceiptScanService
 
         $url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' . $apiKey;
 
-        $response = Http::timeout(30)->post($url, [
-            'contents' => [[
-                'parts' => [
-                    ['text' => $this->buildPrompt()],
-                    ['inline_data' => ['mime_type' => $mimeType, 'data' => $imageData]],
-                ],
-            ]],
-            'generationConfig' => ['temperature' => 0.1, 'maxOutputTokens' => 1024],
-        ]);
+        try {
+            $response = Http::timeout(30)->post($url, [
+                'contents' => [[
+                    'parts' => [
+                        ['text' => $this->buildPrompt()],
+                        ['inline_data' => ['mime_type' => $mimeType, 'data' => $imageData]],
+                    ],
+                ]],
+                'generationConfig' => ['temperature' => 0.1, 'maxOutputTokens' => 1024],
+            ]);
+        } catch (ConnectionException $e) {
+            Log::warning('Gemini scan connection failed: ' . $e->getMessage());
+            return null;
+        }
 
         if (!$response->successful()) {
             Log::warning('Gemini scan failed: ' . $response->status() . ' ' . $response->body());
@@ -74,22 +80,27 @@ class ReceiptScanService
 
         $dataUrl = "data:{$mimeType};base64,{$imageData}";
 
-        $response = Http::timeout(30)->withHeaders([
-            'Authorization' => 'Bearer ' . $apiKey,
-        ])->post('https://api.groq.com/openai/v1/chat/completions', [
-            'model'    => 'meta-llama/llama-4-scout-17b-16e-instruct',
-            'messages' => [
-                [
-                    'role'    => 'user',
-                    'content' => [
-                        ['type' => 'text', 'text' => $this->buildPrompt()],
-                        ['type' => 'image_url', 'image_url' => ['url' => $dataUrl]],
+        try {
+            $response = Http::timeout(30)->withHeaders([
+                'Authorization' => 'Bearer ' . $apiKey,
+            ])->post('https://api.groq.com/openai/v1/chat/completions', [
+                'model'    => 'meta-llama/llama-4-scout-17b-16e-instruct',
+                'messages' => [
+                    [
+                        'role'    => 'user',
+                        'content' => [
+                            ['type' => 'text', 'text' => $this->buildPrompt()],
+                            ['type' => 'image_url', 'image_url' => ['url' => $dataUrl]],
+                        ],
                     ],
                 ],
-            ],
-            'temperature' => 0.1,
-            'max_tokens'  => 1024,
-        ]);
+                'temperature' => 0.1,
+                'max_tokens'  => 1024,
+            ]);
+        } catch (ConnectionException $e) {
+            Log::warning('Groq scan connection failed: ' . $e->getMessage());
+            return null;
+        }
 
         if (!$response->successful()) {
             Log::warning('Groq scan failed: ' . $response->status() . ' ' . $response->body());

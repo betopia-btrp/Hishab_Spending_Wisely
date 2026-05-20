@@ -57,7 +57,8 @@ def _pick_scenario_for_personality(personality, scenarios, overrides=None):
 
 def generate_budgets(cursor, contexts, categories, cat_names, cat_amounts,
                      start_date, end_date, budget_weights,
-                     scenarios=None, profiles=None, config=None):
+                     scenarios=None, profiles=None, config=None,
+                     total_expenses=1_000_000, base_users=1000):
     """
     Generate budgets matching the app's 3-type system.
     """
@@ -66,6 +67,11 @@ def generate_budgets(cursor, contexts, categories, cat_names, cat_amounts,
 
     overrides = (config or {}).get("personality_scenario_overrides", {})
     tagged_pool = (config or {}).get("tagged_budget_descriptions", TAGGED_DESCRIPTIONS)
+
+    # Expected monthly expense volume per user (for scaling budgets to actual spend)
+    date_range = (config or {}).get("date_range_months", 12)
+    monthly_expenses_per_user = total_expenses / max(base_users, 1) / max(date_range, 1)
+    total_bw = sum(budget_weights.values()) or 1.0
 
     # Build weighted category pool
     budget_cat_pool = []
@@ -110,45 +116,49 @@ def generate_budgets(cursor, contexts, categories, cat_names, cat_amounts,
         for cat in ctx_cats:
             ac = cat_amounts.get(cat, {"mean": 500})
             base_mean = ac["mean"]
+            profile_mult = 1.0
 
             # Scale by profile
             if profile:
-                mult = profile.category_mult.get(cat, 1.0)
-                base_mean *= mult
-                base_mean *= profile.amount_mult
+                profile_mult = profile.category_mult.get(cat, 1.0)
+                profile_mult *= profile.amount_mult
                 # Family size scaling for relevant categories
-                family_mult = 1.0
                 if cat == "Groceries":
                     family_mult = {
                         "single": 0.4, "couple": 0.8, "family_kids": 1.5,
                         "joint_family": 2.5, "shared_flat": 0.5,
                     }.get(profile.angles.get("family_type", "single"), 1.0)
-                    base_mean *= family_mult
+                    profile_mult *= family_mult
                 elif cat == "Rent & Housing":
                     rent_mult = {
                         "single": 0.6, "couple": 1.0, "family_kids": 1.3,
                         "joint_family": 1.8, "shared_flat": 0.4,
                     }.get(profile.angles.get("family_type", "single"), 1.0)
-                    base_mean *= rent_mult
-                    base_mean = min(base_mean, profile.rent_cap)
+                    profile_mult *= rent_mult
+                    profile_mult = min(profile_mult, profile.rent_cap / max(base_mean, 1))
                 elif cat == "Utilities":
                     util_mult = {
                         "single": 0.4, "couple": 0.8, "family_kids": 1.5,
                         "joint_family": 2.0, "shared_flat": 0.5,
                     }.get(profile.angles.get("family_type", "single"), 1.0)
-                    base_mean *= util_mult
+                    profile_mult *= util_mult
                 elif cat == "Education":
                     edu_mult = {
                         "single": 0.0, "couple": 0.0, "family_kids": 2.0,
                         "joint_family": 1.0, "shared_flat": 0.0,
                     }.get(profile.angles.get("family_type", "single"), 1.0)
-                    base_mean *= edu_mult
+                    profile_mult *= edu_mult
+
+            # Scale by expected monthly expense count for this category
+            cat_bw = budget_weights.get(cat, 5)
+            cat_monthly_count = monthly_expenses_per_user * (cat_bw / total_bw)
+            monthly_mean = base_mean * cat_monthly_count * profile_mult
 
             # Pick scenario
             scenario_name = _pick_scenario_for_personality(personality, scenarios, overrides)
             scenario_range = _get_scenario_range(scenario_name, scenarios)
             factor = random.uniform(*scenario_range)
-            budget_amt = round(base_mean * factor, -1)
+            budget_amt = round(monthly_mean * factor, -1)
             budget_amt = max(budget_amt, 10)
 
             category_amounts[cat] = budget_amt

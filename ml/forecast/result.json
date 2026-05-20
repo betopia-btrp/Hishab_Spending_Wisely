@@ -1,0 +1,895 @@
+{
+  "backtest": true,
+  "target_month": 1,
+  "target_year": 2026,
+  "cutoff_day": 13,
+  "interval_level": 0.8,
+  "overall_mape": 44.52,
+  "overall_mae_bdt": 40820.07,
+  "mean_mae_bdt": 18693.55,
+  "baseline_overall_mape": 37.27,
+  "baseline_overall_mae_bdt": 33377.1,
+  "baseline_mean_mae_bdt": 15646.32,
+  "mae_improvement_bdt": -7442.97,
+  "mae_improvement_pct": -22.3,
+  "model_win_rate": 20,
+  "coverage_rate": 60,
+  "interval_rows": 5,
+  "results": [
+    {
+      "category_id": null,
+      "category_name": "Base",
+      "context_id": "23312b4b-5eac-4aad-aad9-ed2b66611cd0",
+      "budget": 44840,
+      "projected": 139627.97,
+      "actual": 94617.13,
+      "mape": 47.57,
+      "mae_bdt": 45010.84,
+      "baseline_projected": 131495.41,
+      "baseline_mape": 38.98,
+      "baseline_mae_bdt": 36878.28,
+      "model_beats_baseline": false,
+      "pred_lower": 117556.76,
+      "pred_upper": 160907.39,
+      "interval_hit": false,
+      "alert_tier": "overspend",
+      "daily_breakdown": [
+        {
+          "day": 1,
+          "projected": null,
+          "actual": 3642.15
+        },
+        {
+          "day": 2,
+          "projected": null,
+          "actual": 2822.82
+        },
+        {
+          "day": 3,
+          "projected": null,
+          "actual": 449.32
+        },
+        {
+          "day": 4,
+          "projected": null,
+          "actual": 6758.56
+        },
+        {
+          "day": 5,
+          "projected": null,
+          "actual": 4121.22
+        },
+        {
+          "day": 6,
+          "projected": null,
+          "actual": 2081.34
+        },
+        {
+          "day": 7,
+          "projected": null,
+          "actual": 1621.69
+        },
+        {
+          "day": 8,
+          "projected": null,
+          "actual": 7763.34
+        },
+        {
+          "day": 9,
+          "projected": null,
+          "actual": 1530.63
+        },
+        {
+          "day": 10,
+          "projected": null,
+          "actual": 8980.57
+        },
+        {
+          "day": 11,
+          "projected": null,
+          "actual": 3137.21
+        },
+        {
+          "day": 12,
+          "projected": null,
+          "actual": 4361.02
+        },
+        {
+          "day": 13,
+          "projected": null,
+          "actual": 3631.58
+        },
+        {
+          "day": 14,
+          "projected": 4669.82,
+          "actual": 1265.16
+        },
+        {
+          "day": 15,
+          "projected": 4669.82,
+          "actual": 1065.13
+        },
+        {
+          "day": 16,
+          "projected": 4669.82,
+          "actual": 41.9
+        },
+        {
+          "day": 17,
+          "projected": 4669.82,
+          "actual": 718.97
+        },
+        {
+          "day": 18,
+          "projected": 4669.82,
+          "actual": 2968.41
+        },
+        {
+          "day": 19,
+          "projected": 4669.82,
+          "actual": 1261.1
+        },
+        {
+          "day": 20,
+          "projected": 4669.82,
+          "actual": 5496.72
+        },
+        {
+          "day": 21,
+          "projected": 4669.82,
+          "actual": 617.37
+        },
+        {
+          "day": 22,
+          "projected": 4669.82,
+          "actual": 451.65
+        },
+        {
+          "day": 23,
+          "projected": 4669.82,
+          "actual": 4118.51
+        },
+        {
+          "day": 24,
+          "projected": 4669.82,
+          "actual": 8175.64
+        },
+        {
+          "day": 25,
+          "projected": 4669.82,
+          "actual": 1521.14
+        },
+        {
+          "day": 26,
+          "projected": 4669.82,
+          "actual": 4246.09
+        },
+        {
+          "day": 27,
+          "projected": 4669.82,
+          "actual": 2621.98
+        },
+        {
+          "day": 28,
+          "projected": 4669.82,
+          "actual": 4370.04
+        },
+        {
+          "day": 29,
+          "projected": 4669.82,
+          "actual": 449.4
+        },
+        {
+          "day": 30,
+          "projected": 4669.82,
+          "actual": 1607.91
+        },
+        {
+          "day": 31,
+          "projected": 4669.82,
+          "actual": 2718.56
+        }
+      ]
+    },
+    {
+      "category_id": "043a1fc7-3823-461b-b2eb-95e05e9f7fa3",
+      "category_name": "Transportation",
+      "context_id": "23312b4b-5eac-4aad-aad9-ed2b66611cd0",
+      "budget": 150,
+      "projected": 500.9,
+      "actual": 248.92,
+      "mape": 101.23,
+      "mae_bdt": 251.98,
+      "baseline_projected": 169.36,
+      "baseline_mape": 31.96,
+      "baseline_mae_bdt": 79.56,
+      "model_beats_baseline": false,
+      "pred_lower": 111.51,
+      "pred_upper": 680.78,
+      "interval_hit": true,
+      "alert_tier": "on_track_exceed",
+      "daily_breakdown": [
+        {
+          "day": 1,
+          "projected": null,
+          "actual": 0
+        },
+        {
+          "day": 2,
+          "projected": null,
+          "actual": 0
+        },
+        {
+          "day": 3,
+          "projected": null,
+          "actual": 65.56
+        },
+        {
+          "day": 4,
+          "projected": null,
+          "actual": 0
+        },
+        {
+          "day": 5,
+          "projected": null,
+          "actual": 0
+        },
+        {
+          "day": 6,
+          "projected": null,
+          "actual": 0
+        },
+        {
+          "day": 7,
+          "projected": null,
+          "actual": 0
+        },
+        {
+          "day": 8,
+          "projected": null,
+          "actual": 0
+        },
+        {
+          "day": 9,
+          "projected": null,
+          "actual": 0
+        },
+        {
+          "day": 10,
+          "projected": null,
+          "actual": 0
+        },
+        {
+          "day": 11,
+          "projected": null,
+          "actual": 0
+        },
+        {
+          "day": 12,
+          "projected": null,
+          "actual": 0
+        },
+        {
+          "day": 13,
+          "projected": null,
+          "actual": 0
+        },
+        {
+          "day": 14,
+          "projected": 22.91,
+          "actual": 0
+        },
+        {
+          "day": 15,
+          "projected": 22.91,
+          "actual": 0
+        },
+        {
+          "day": 16,
+          "projected": 22.91,
+          "actual": 0
+        },
+        {
+          "day": 17,
+          "projected": 22.91,
+          "actual": 0
+        },
+        {
+          "day": 18,
+          "projected": 22.91,
+          "actual": 0
+        },
+        {
+          "day": 19,
+          "projected": 22.91,
+          "actual": 0
+        },
+        {
+          "day": 20,
+          "projected": 22.91,
+          "actual": 0
+        },
+        {
+          "day": 21,
+          "projected": 22.91,
+          "actual": 0
+        },
+        {
+          "day": 22,
+          "projected": 22.91,
+          "actual": 0
+        },
+        {
+          "day": 23,
+          "projected": 22.91,
+          "actual": 0
+        },
+        {
+          "day": 24,
+          "projected": 22.91,
+          "actual": 0
+        },
+        {
+          "day": 25,
+          "projected": 22.91,
+          "actual": 0
+        },
+        {
+          "day": 26,
+          "projected": 22.91,
+          "actual": 0
+        },
+        {
+          "day": 27,
+          "projected": 22.91,
+          "actual": 0
+        },
+        {
+          "day": 28,
+          "projected": 22.91,
+          "actual": 0
+        },
+        {
+          "day": 29,
+          "projected": 22.91,
+          "actual": 64.48
+        },
+        {
+          "day": 30,
+          "projected": 22.91,
+          "actual": 0
+        },
+        {
+          "day": 31,
+          "projected": 22.91,
+          "actual": 118.88
+        }
+      ]
+    },
+    {
+      "category_id": "024f8bac-9ebb-4b91-809e-ef330817c44f",
+      "category_name": "Health & Medical",
+      "context_id": "23312b4b-5eac-4aad-aad9-ed2b66611cd0",
+      "budget": 310,
+      "projected": 3434.15,
+      "actual": 3169.34,
+      "mape": 8.36,
+      "mae_bdt": 264.81,
+      "baseline_projected": 6568.67,
+      "baseline_mape": 107.26,
+      "baseline_mae_bdt": 3399.33,
+      "model_beats_baseline": true,
+      "pred_lower": 2665.82,
+      "pred_upper": 3748.02,
+      "interval_hit": true,
+      "alert_tier": "overspend",
+      "daily_breakdown": [
+        {
+          "day": 1,
+          "projected": null,
+          "actual": 768.64
+        },
+        {
+          "day": 2,
+          "projected": null,
+          "actual": 0
+        },
+        {
+          "day": 3,
+          "projected": null,
+          "actual": 0
+        },
+        {
+          "day": 4,
+          "projected": null,
+          "actual": 708.8
+        },
+        {
+          "day": 5,
+          "projected": null,
+          "actual": 0
+        },
+        {
+          "day": 6,
+          "projected": null,
+          "actual": 0
+        },
+        {
+          "day": 7,
+          "projected": null,
+          "actual": 0
+        },
+        {
+          "day": 8,
+          "projected": null,
+          "actual": 515.46
+        },
+        {
+          "day": 9,
+          "projected": null,
+          "actual": 549.81
+        },
+        {
+          "day": 10,
+          "projected": null,
+          "actual": 0
+        },
+        {
+          "day": 11,
+          "projected": null,
+          "actual": 0
+        },
+        {
+          "day": 12,
+          "projected": null,
+          "actual": 0
+        },
+        {
+          "day": 13,
+          "projected": null,
+          "actual": 0
+        },
+        {
+          "day": 14,
+          "projected": 46.92,
+          "actual": 0
+        },
+        {
+          "day": 15,
+          "projected": 46.92,
+          "actual": 0
+        },
+        {
+          "day": 16,
+          "projected": 46.92,
+          "actual": 41.9
+        },
+        {
+          "day": 17,
+          "projected": 46.92,
+          "actual": 0
+        },
+        {
+          "day": 18,
+          "projected": 46.92,
+          "actual": 0
+        },
+        {
+          "day": 19,
+          "projected": 46.92,
+          "actual": 0
+        },
+        {
+          "day": 20,
+          "projected": 46.92,
+          "actual": 0
+        },
+        {
+          "day": 21,
+          "projected": 46.92,
+          "actual": 273.81
+        },
+        {
+          "day": 22,
+          "projected": 46.92,
+          "actual": 0
+        },
+        {
+          "day": 23,
+          "projected": 46.92,
+          "actual": 0
+        },
+        {
+          "day": 24,
+          "projected": 46.92,
+          "actual": 0
+        },
+        {
+          "day": 25,
+          "projected": 46.92,
+          "actual": 0
+        },
+        {
+          "day": 26,
+          "projected": 46.92,
+          "actual": 310.92
+        },
+        {
+          "day": 27,
+          "projected": 46.92,
+          "actual": 0
+        },
+        {
+          "day": 28,
+          "projected": 46.92,
+          "actual": 0
+        },
+        {
+          "day": 29,
+          "projected": 46.92,
+          "actual": 0
+        },
+        {
+          "day": 30,
+          "projected": 46.92,
+          "actual": 0
+        },
+        {
+          "day": 31,
+          "projected": 46.92,
+          "actual": 0
+        }
+      ]
+    },
+    {
+      "category_id": "a69397a0-2259-4aa6-980a-6aed8a426d31",
+      "category_name": "Education",
+      "context_id": "23312b4b-5eac-4aad-aad9-ed2b66611cd0",
+      "budget": 40320,
+      "projected": 20200.1,
+      "actual": 17270.82,
+      "mape": 16.96,
+      "mae_bdt": 2929.28,
+      "baseline_projected": 16274.69,
+      "baseline_mape": 5.77,
+      "baseline_mae_bdt": 996.13,
+      "model_beats_baseline": false,
+      "pred_lower": 13635.55,
+      "pred_upper": 30053.49,
+      "interval_hit": true,
+      "alert_tier": null,
+      "daily_breakdown": [
+        {
+          "day": 1,
+          "projected": null,
+          "actual": 0
+        },
+        {
+          "day": 2,
+          "projected": null,
+          "actual": 1689.55
+        },
+        {
+          "day": 3,
+          "projected": null,
+          "actual": 0
+        },
+        {
+          "day": 4,
+          "projected": null,
+          "actual": 0
+        },
+        {
+          "day": 5,
+          "projected": null,
+          "actual": 0
+        },
+        {
+          "day": 6,
+          "projected": null,
+          "actual": 0
+        },
+        {
+          "day": 7,
+          "projected": null,
+          "actual": 0
+        },
+        {
+          "day": 8,
+          "projected": null,
+          "actual": 0
+        },
+        {
+          "day": 9,
+          "projected": null,
+          "actual": 0
+        },
+        {
+          "day": 10,
+          "projected": null,
+          "actual": 0
+        },
+        {
+          "day": 11,
+          "projected": null,
+          "actual": 0
+        },
+        {
+          "day": 12,
+          "projected": null,
+          "actual": 2760.25
+        },
+        {
+          "day": 13,
+          "projected": null,
+          "actual": 1850.08
+        },
+        {
+          "day": 14,
+          "projected": 731.59,
+          "actual": 0
+        },
+        {
+          "day": 15,
+          "projected": 731.59,
+          "actual": 0
+        },
+        {
+          "day": 16,
+          "projected": 731.59,
+          "actual": 0
+        },
+        {
+          "day": 17,
+          "projected": 731.59,
+          "actual": 0
+        },
+        {
+          "day": 18,
+          "projected": 731.59,
+          "actual": 1978.05
+        },
+        {
+          "day": 19,
+          "projected": 731.59,
+          "actual": 0
+        },
+        {
+          "day": 20,
+          "projected": 731.59,
+          "actual": 0
+        },
+        {
+          "day": 21,
+          "projected": 731.59,
+          "actual": 0
+        },
+        {
+          "day": 22,
+          "projected": 731.59,
+          "actual": 0
+        },
+        {
+          "day": 23,
+          "projected": 731.59,
+          "actual": 764.62
+        },
+        {
+          "day": 24,
+          "projected": 731.59,
+          "actual": 0
+        },
+        {
+          "day": 25,
+          "projected": 731.59,
+          "actual": 0
+        },
+        {
+          "day": 26,
+          "projected": 731.59,
+          "actual": 2743.82
+        },
+        {
+          "day": 27,
+          "projected": 731.59,
+          "actual": 0
+        },
+        {
+          "day": 28,
+          "projected": 731.59,
+          "actual": 3074.44
+        },
+        {
+          "day": 29,
+          "projected": 731.59,
+          "actual": 0
+        },
+        {
+          "day": 30,
+          "projected": 731.59,
+          "actual": 0
+        },
+        {
+          "day": 31,
+          "projected": 731.59,
+          "actual": 2410.01
+        }
+      ]
+    },
+    {
+      "category_id": null,
+      "category_name": "Base",
+      "context_id": "23312b4b-5eac-4aad-aad9-ed2b66611cd0",
+      "budget": 3370,
+      "projected": 139627.97,
+      "actual": 94617.13,
+      "mape": 47.57,
+      "mae_bdt": 45010.84,
+      "baseline_projected": 131495.41,
+      "baseline_mape": 38.98,
+      "baseline_mae_bdt": 36878.28,
+      "model_beats_baseline": false,
+      "pred_lower": 117556.76,
+      "pred_upper": 160907.39,
+      "interval_hit": false,
+      "alert_tier": "overspend",
+      "daily_breakdown": [
+        {
+          "day": 1,
+          "projected": null,
+          "actual": 3642.15
+        },
+        {
+          "day": 2,
+          "projected": null,
+          "actual": 2822.82
+        },
+        {
+          "day": 3,
+          "projected": null,
+          "actual": 449.32
+        },
+        {
+          "day": 4,
+          "projected": null,
+          "actual": 6758.56
+        },
+        {
+          "day": 5,
+          "projected": null,
+          "actual": 4121.22
+        },
+        {
+          "day": 6,
+          "projected": null,
+          "actual": 2081.34
+        },
+        {
+          "day": 7,
+          "projected": null,
+          "actual": 1621.69
+        },
+        {
+          "day": 8,
+          "projected": null,
+          "actual": 7763.34
+        },
+        {
+          "day": 9,
+          "projected": null,
+          "actual": 1530.63
+        },
+        {
+          "day": 10,
+          "projected": null,
+          "actual": 8980.57
+        },
+        {
+          "day": 11,
+          "projected": null,
+          "actual": 3137.21
+        },
+        {
+          "day": 12,
+          "projected": null,
+          "actual": 4361.02
+        },
+        {
+          "day": 13,
+          "projected": null,
+          "actual": 3631.58
+        },
+        {
+          "day": 14,
+          "projected": 4669.82,
+          "actual": 1265.16
+        },
+        {
+          "day": 15,
+          "projected": 4669.82,
+          "actual": 1065.13
+        },
+        {
+          "day": 16,
+          "projected": 4669.82,
+          "actual": 41.9
+        },
+        {
+          "day": 17,
+          "projected": 4669.82,
+          "actual": 718.97
+        },
+        {
+          "day": 18,
+          "projected": 4669.82,
+          "actual": 2968.41
+        },
+        {
+          "day": 19,
+          "projected": 4669.82,
+          "actual": 1261.1
+        },
+        {
+          "day": 20,
+          "projected": 4669.82,
+          "actual": 5496.72
+        },
+        {
+          "day": 21,
+          "projected": 4669.82,
+          "actual": 617.37
+        },
+        {
+          "day": 22,
+          "projected": 4669.82,
+          "actual": 451.65
+        },
+        {
+          "day": 23,
+          "projected": 4669.82,
+          "actual": 4118.51
+        },
+        {
+          "day": 24,
+          "projected": 4669.82,
+          "actual": 8175.64
+        },
+        {
+          "day": 25,
+          "projected": 4669.82,
+          "actual": 1521.14
+        },
+        {
+          "day": 26,
+          "projected": 4669.82,
+          "actual": 4246.09
+        },
+        {
+          "day": 27,
+          "projected": 4669.82,
+          "actual": 2621.98
+        },
+        {
+          "day": 28,
+          "projected": 4669.82,
+          "actual": 4370.04
+        },
+        {
+          "day": 29,
+          "projected": 4669.82,
+          "actual": 449.4
+        },
+        {
+          "day": 30,
+          "projected": 4669.82,
+          "actual": 1607.91
+        },
+        {
+          "day": 31,
+          "projected": 4669.82,
+          "actual": 2718.56
+        }
+      ]
+    }
+  ]
+}

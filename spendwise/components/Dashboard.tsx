@@ -77,17 +77,13 @@ export default function Dashboard() {
     }
   }, [inviteCode]);
 
-  const fetchForecast = useCallback(async (contextId: string) => {
+  const fetchForecast = useCallback(async (contextId: string, force = false) => {
     setForecastLoading(true);
     setForecastData([]);
     try {
-      const period = getPeriodConfig("this_month");
-      await api.post("/forecasts/run");
-      const freshRes = await api.get("/forecasts", {
-        params: { context_id: contextId, month: period.month, year: period.year },
-      });
-      const fresh = freshRes.data?.forecasts || [];
-      setForecastData(fresh.filter((f: any) => f.context_id === contextId));
+      const res = await api.post("/forecasts/run", { force });
+      const forecasts = res.data?.forecasts || [];
+      setForecastData(forecasts.filter((f: any) => f.context_id === contextId));
     } catch (err) {
       console.error(err);
     } finally {
@@ -143,34 +139,25 @@ export default function Dashboard() {
         allBudgets = aggRes.data?.budgets ?? [];
       }
 
-      const categorySpent = new Map<string, number>();
-      expenses.forEach((e: any) => {
-        const catId = e.category?.id || '__uncategorized__';
-        categorySpent.set(catId, (categorySpent.get(catId) || 0) + Number(e.amount));
-      });
-      const overallSpent = expenses.reduce((s: number, e: any) => s + Number(e.amount), 0);
-
       const deduped = Array.from(
         allBudgets.reduce((map: Map<string, any>, b: any) => {
           const key = b.category?.id || '__overall__';
           const amt = Number(b.budget ?? 0);
           if (map.has(key)) {
-            map.get(key).budget += amt;
+            const existing = map.get(key);
+            existing.budget += amt;
+            existing.spent = (existing.spent || 0) + Number(b.spent || 0);
           } else {
-            map.set(key, { ...b, budget: amt });
+            map.set(key, { ...b, budget: amt, spent: Number(b.spent || 0) });
           }
           return map;
         }, new Map())
         .values()
       ).map((b: any) => {
-        const spent = b.category?.id
-          ? (categorySpent.get(b.category.id) || 0)
-          : overallSpent;
         const budget = Number(b.budget);
         return {
           ...b,
-          spent,
-          percentage: budget > 0 ? Math.round(spent / budget * 100 * 100) / 100 : 0,
+          percentage: budget > 0 ? Math.round(b.spent / budget * 100 * 100) / 100 : 0,
         };
       });
       const totalBudget = deduped.reduce((sum: number, b: any) => sum + Number(b.budget ?? 0), 0);
@@ -398,14 +385,29 @@ export default function Dashboard() {
       </div>
 
       {budgetList.length > 0 && currentContext && (
-        <BudgetHealthCard
-          budgets={budgetList}
-          contextId={currentContext.id}
-          forecasts={forecastData}
-          forecastLoading={forecastLoading}
-          dateFrom={period.dateFrom}
-          dateTo={period.dateTo}
-        />
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-lg font-bold text-slate-900">Budget Health</h3>
+            <button
+              onClick={() => fetchForecast(currentContext.id, true)}
+              disabled={forecastLoading}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+            >
+              <svg className={`w-3.5 h-3.5 ${forecastLoading ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              {forecastLoading ? 'Refreshing...' : 'Refresh forecast'}
+            </button>
+          </div>
+          <BudgetHealthCard
+            budgets={budgetList}
+            contextId={currentContext.id}
+            forecasts={forecastData}
+            forecastLoading={forecastLoading}
+            dateFrom={period.dateFrom}
+            dateTo={period.dateTo}
+          />
+        </div>
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

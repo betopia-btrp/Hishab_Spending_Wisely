@@ -345,9 +345,10 @@ ml/auto_categorize/
 ```bash
 # Full 1M generation (standalone — no Laravel dependency)
 source venv/bin/activate
-python -m ml.seeding.generate --expenses 1000000
+python -m ml.seeding.generate --expenses 1000000 --base-users 500 --date-range-months 12
 
-# Load expenses + splits
+# Load expenses + splits — Option A: host psql
+cp ml/seeding/output/*.tsv /tmp/seeding/
 psql -h 127.0.0.1 -p 5435 -U spendwise -d spendwise -f ml/seeding/import.sql
 ```
 
